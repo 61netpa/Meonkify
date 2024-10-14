@@ -33,7 +33,18 @@ local FC = {}
 local FCV = {}
 local AmbientColor = {}
 local Lighting = game:GetService("Lighting")
-local WeaponMods = {}
+local WeaponMods = {
+	Enabled = false
+	R = {}
+	AT = {}
+	FR = {}
+	RT = {}
+	RE = {}
+	AZM = {}
+	ATE = {}
+	FRE = {}
+	RTE = {}
+}
 local WMR = {}
 local WMAT = {}
 local WMFR = {}
@@ -1329,7 +1340,7 @@ AntiAimGroup:AddToggle('AntiAimToggle', {
 	Tooltip = 'Enable/Disable anti aim',
 
 	Callback = function(Value)
-		AA = Value
+		AntiAim.Enabled = Value
 	end
 })
 
@@ -1341,7 +1352,7 @@ AntiAimGroup:AddSlider('AntiAimPositionX', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AAPX = Value
+		AntiAim.PX = Value
 	end
 })
 
@@ -1353,7 +1364,7 @@ AntiAimGroup:AddSlider('AntiAimPositionY', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AAPY = Value
+		AntiAim.PY = Value
 	end
 })
 
@@ -1365,7 +1376,7 @@ AntiAimGroup:AddSlider('AntiAimPositionZ', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AAPZ = Value
+		AntiAim.PZ = Value
 	end
 })
 
@@ -1377,7 +1388,7 @@ AntiAimGroup:AddSlider('AntiAimRightVectorX', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AARVX = Value
+		AntiAim.RVX = Value
 	end
 })
 
@@ -1389,7 +1400,7 @@ AntiAimGroup:AddSlider('AntiAimRightVectorY', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AARVY = Value
+		AntiAim.RVY = Value
 	end
 })
 
@@ -1401,7 +1412,7 @@ AntiAimGroup:AddSlider('AntiAimRightVectorZ', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AARVZ = Value
+		AntiAim.RVZ = Value
 	end
 })
 
@@ -1413,7 +1424,7 @@ AntiAimGroup:AddSlider('AntiAimUpVectorX', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AAUVX = Value
+		AntiAim.UVX = Value
 	end
 })
 
@@ -1425,7 +1436,7 @@ AntiAimGroup:AddSlider('AntiAimUpVectorY', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AAUVY = Value
+		AntiAim.UVY = Value
 	end
 })
 
@@ -1437,7 +1448,7 @@ AntiAimGroup:AddSlider('AntiAimUpVectorZ', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AAUVZ = Value
+		AntiAim.UVZ = Value
 	end
 })
 
@@ -1449,7 +1460,7 @@ AntiAimGroup:AddSlider('AntiAimLookVectorX', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AALVX = Value
+		AntiAim.LVX = Value
 	end
 })
 
@@ -1461,7 +1472,7 @@ AntiAimGroup:AddSlider('AntiAimLookVectorY', {
 	Rounding = 0,
 
 	Callback = function(Value)
-		AALVY = Value
+		AntiAim.LVY = Value
 	end
 })
 
@@ -1473,7 +1484,7 @@ AntiAimGroup:AddSlider('AntiAimLookVectorZ', {
 	Rounding = 0,
 	
 	Callback = function(Value)
-		AALVZ = Value
+		AntiAim.LVZ = Value
 	end
 })
 
@@ -1495,7 +1506,7 @@ WeaponModsGroup:AddToggle('WeaponModsEnabled', {
 	Tooltip = 'Enable/Disable weapon mods',
 
 	Callback = function(Value)
-		WeaponMods = Value
+		WeaponMods.Enabled = Value
 	end
 })
 
@@ -1507,7 +1518,7 @@ WeaponModsGroup:AddToggle('WeaponModsRecoil', {
 	Tooltip = 'Change the recoil of the weapons',
 
 	Callback = function(Value)
-		WMRE = Value
+		WeaponMods.RE = Value
 	end
 })
 
@@ -1519,7 +1530,7 @@ WeaponModsGroup:AddSlider('WeaponModsRecoilValue', {
 	Rounding = 2,
 
 	Callback = function(Value)
-		WMR = Value
+		WeaponMods.R = Value
 	end
 })
 
@@ -1531,7 +1542,7 @@ WeaponModsGroup:AddToggle('WeaponModsAimTime', {
 	Tooltip = 'Change the time of aiming in',
 
 	Callback = function(Value)
-		WMATE = Value
+		WeaponMods.ATE = Value
 	end
 })
 
@@ -1543,7 +1554,7 @@ WeaponModsGroup:AddSlider('WeaponModsAimTimeValue', {
 	Rounding = 2,
 
 	Callback = function(Value)
-		WMAT = Value
+		WeaponMods.AT = Value
 	end
 })
 
@@ -1555,7 +1566,7 @@ WeaponModsGroup:AddToggle('WeaponModsFireRate', {
 	Tooltip = 'Change the weapon firerate (lower = faster)',
 
 	Callback = function(Value)
-		WMFRE = Value
+		WeaponMods.FRE = Value
 	end
 })
 
@@ -1567,7 +1578,7 @@ WeaponModsGroup:AddSlider('WeaponModsFireRateValue', {
 	Rounding = 2,
 
 	Callback = function(Value)
-		WMFR = Value
+		WeaponMods.FR = Value
 	end
 })
 
@@ -1579,7 +1590,7 @@ WeaponModsGroup:AddToggle('WeaponModsReloadTimeRate', {
 	Tooltip = 'Change the weapon reload time',
 
 	Callback = function(Value)
-		WMRTE = Value
+		WeaponMods.RTE = Value
 	end
 })
 
@@ -1591,7 +1602,7 @@ WeaponModsGroup:AddSlider('WeaponModsReloadTimeValue', {
 	Rounding = 4,
 
 	Callback = function(Value)
-		WMRT = Value
+		WeaponMods.RT = Value
 	end
 })
 
@@ -1603,7 +1614,7 @@ WeaponModsGroup:AddToggle('WeaponModsAimMulti', {
 	Tooltip = 'Change the weapon reload time',
 
 	Callback = function(Value)
-		WMAZME = Value
+		WeaponMods.AZME = Value
 	end
 })
 
@@ -1615,7 +1626,7 @@ WeaponModsGroup:AddSlider('WeaponModsAimMultiValue', {
 	Rounding = 4,
 
 	Callback = function(Value)
-		WMAZM = Value
+		WeaponMods.AZM = Value
 	end
 })
 
@@ -1630,7 +1641,7 @@ function WeaponMods(weapon)
 			local modfolder = children:FindFirstChild("Stats")
 
 			if modfolder ~= nil then
-				if WMRE == true then
+				if WeaponMods.RE == true then
 					if modfolder:FindFirstChild("GunRecoil") then
 						modfolder:FindFirstChild("GunRecoil"):Destroy()
 					end
@@ -1639,50 +1650,50 @@ function WeaponMods(weapon)
 					end	
 					wait(0.01)
 					local customrecoil = Instance.new("NumberValue", modfolder)
-					customrecoil.Value = WMR
+					customrecoil.Value = WeaponMods.R
 					customrecoil.Name = "GunRecoil"
 					local customrecoilX = Instance.new("NumberValue", modfolder)
-					customrecoilX.Value = WMR
+					customrecoilX.Value = WeaponMods.R
 					customrecoilX.Name = "GunRecoilX"
 					Options.WeaponModsRecoilValue:OnChanged(function()
-						customrecoil.Value = WMR
-						customrecoilX.Value = WMR
+						customrecoil.Value = WeaponMods.R
+						customrecoilX.Value = WeaponMods.R
 					end)
 				end
-				if WMATE == true then
+				if WeaponMods.ATE == true then
 					if modfolder:FindFirstChild("AimTime") then
 						modfolder:FindFirstChild("AimTime"):Destroy()
 					end
 					wait(0.01)
 					local customaimtime = Instance.new("NumberValue", modfolder)
-					customaimtime.Value = WMAT
+					customaimtime.Value = WeaponMods.AT
 					customaimtime.Name = "AimTime"
 					Options.WeaponModsAimTimeValue:OnChanged(function()
-						customaimtime.Value = WMAT
+						customaimtime.Value = WeaponMods.AT
 					end)
 				end
-				if WMFRE == true then
+				if WeaponMods.FRE == true then
 					if modfolder:FindFirstChild("waittime") then
 						modfolder:FindFirstChild("waittime"):Destroy()
 					end
 					wait(0.01)
 					local customfirerate = Instance.new("NumberValue", modfolder)
-					customfirerate.Value = WMFR
+					customfirerate.Value = WeaponMods.FR
 					customfirerate.Name = "waittime"
 					Options.WeaponModsFireRateValue:OnChanged(function()
-						customfirerate.Value = WMFR
+						customfirerate.Value = WeaponMods.FR
 					end)
 				end
-				if WMRTE == true then
+				if WeaponMods.RTE == true then
 					if modfolder:FindFirstChild("ReloadSpeed") then
 						modfolder:FindFirstChild("ReloadSpeed"):Destroy()
 					end
 					wait(0.01)
 					local customreloadtime = Instance.new("NumberValue", modfolder)
-					customreloadtime.Value = WMRT
+					customreloadtime.Value = WeaponMods.RT
 					customreloadtime.Name = "ReloadSpeed"
 					Options.WeaponModsReloadTimeValue:OnChanged(function()
-						customreloadtime.Value = WMRT
+						customreloadtime.Value = WeaponMods.RT
 					end)
 				end
 			end
@@ -1694,7 +1705,7 @@ LocalPlayer.CharacterAdded:Connect(function()
 	if LocalPlayer.Character then
 		LocalPlayer.Character.ChildAdded:Connect(function(tool)
 			if tool:IsA("Tool") then
-				if WeaponMods == true then
+				if WeaponMods.Enabled == true then
 					WeaponMods(tool)
 				end				
 			end
