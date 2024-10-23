@@ -5,7 +5,6 @@ local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Window = Library:CreateWindow({
-
 	Title = 'Meonkify',
 	Center = true,
 	AutoShow = true,
@@ -32,7 +31,6 @@ local HF = {}
 local FC = {}
 local FCV = {}
 local AmbientColor = {}
-local Lighting = game:GetService("Lighting")
 local WeaponMods = {
 	Enabled = false
 	R = {}
@@ -97,6 +95,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
 local Camera = Workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
@@ -1138,29 +1137,9 @@ ViewModelGroup:AddSlider('VMZ', {
 	end
 })
 
-LocalPlayer.CharacterAdded:Connect(function()
-	if LocalPlayer.Character then
-		LocalPlayer.Character.ChildAdded:Connect(function()
-			if VM == true then
-				for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
-					if tool:IsA("Tool") and tool:FindFirstChild("ViewModelOffset") then
-						wait(0.05)
-						tool.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-						Options.VMX:OnChanged(function()
-							tool.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-						end)
-						Options.VMY:OnChanged(function()
-							tool.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-						end)
-						Options.VMZ:OnChanged(function()
-							tool.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-						end)
-					end
-				end
-			end
-		end)
-	end
-end)
+for _, Materials in ipairs(Enum.Material:GetEnumItems()) do
+    table.insert(Materials, Material.Name)
+end
 
 WeaponGroup:AddToggle('WeaponModelToggle', {
 	Text = 'Enabled',
@@ -1171,10 +1150,6 @@ WeaponGroup:AddToggle('WeaponModelToggle', {
 		MM = Value
 	end
 })
-
-for _, Materials in ipairs(Enum.Material:GetEnumItems()) do
-    table.insert(Materials, material.Name)
-end
 
 WeaponGroup:AddDropdown('WeaponMaterial', {
 	Values = Materials,
@@ -1199,32 +1174,6 @@ WeaponGroup:AddLabel('MaterialColor'):AddColorPicker('WeaponMaterialColor', {
 	end
 })
 
-function WeaponModel(weapon)
-	for _, descendant in ipairs(weapon:GetDescendants()) do
-		if descendant:IsA("SurfaceAppearance") then
-			descendant:Destroy()
-		elseif descendant:IsA("MeshPart") and descendant.TextureID ~= "" then
-			descendant.TextureID = ""
-		end
-		if descendant:IsA("MeshPart") or descendant:IsA("Part") then
-			descendant.Material = Material
-			descendant.Color = MaterialColor
-		end
-	end
-end
-
-LocalPlayer.CharacterAdded:Connect(function()
-	if LocalPlayer.Character then
-		LocalPlayer.Character.ChildAdded:Connect(function(tool)
-			if MM == true then
-				if tool:IsA("Tool") then
-					WeaponModel(tool)
-				end
-			end
-		end)
-	end
-end)
-
 FOVChangerGroup:AddToggle('FOVChangerEnabled', {
 	Text = 'Enabled',
 	Default = false,
@@ -1247,11 +1196,6 @@ FOVChangerGroup:AddSlider('FOVCS', {
 	end
 })
 
-RunService.RenderStepped:Connect(function()
-	if FC == true then
-		Camera.FieldOfView = FCV
-	end
-end)
 LightingGroup:AddToggle('LightingToggle', {
 	Text = 'Enabled',
 	Default = false,
@@ -1319,20 +1263,6 @@ LightingGroup:AddLabel('Ambient Color'):AddColorPicker('LAmbientColor', {
 		AmbientColor = Value
 	end
 })
-
-if LightingLoop then
-	LightingLoop:Disconnect()
-end
-function ChangeLighting()
-	if LightingEnabled == true then
-		Lighting.Brightness = BrightnessValue
-		Lighting.ClockTime = CT
-		Lighting.GlobalShadows = Shadows
-		Lighting.OutdoorAmbient = AmbientColor
-	end
-end
-
-LightingLoop = RunService.RenderStepped:Connect(ChangeLighting)
 
 AntiAimGroup:AddToggle('AntiAimToggle', {
 	Text = 'Enabled',
@@ -1488,18 +1418,6 @@ AntiAimGroup:AddSlider('AntiAimLookVectorZ', {
 	end
 })
 
-LocalPlayer.CharacterAdded:Connect(function()
-	if LocalPlayer.Character then
-		Toggles.AntiAimToggle:OnChanged(function()
-			getgenv().AntiAim = RunService.RenderStepped:Connect(function()
-				if AntiAim.Enabled == true then					
-					game:GetService("ReplicatedStorage"):WaitForChild("CameraEvent"):FireServer({CFrame.new(AntiAim.PX, AntiAim.PY, AntiAim.PZ, AntiAim.RVX, AntiAim.RVY, AntiAim.RVZ, AntiAim.UVX, AntiAim.UVY, AntiAim.UVZ, AntiAim.LVX, AntiAim.LVY, AntiAim.LVZ), 0, 0.01, true, CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1) })
-				end
-			end)
-		end)
-	end
-end)
-
 WeaponModsGroup:AddToggle('WeaponModsEnabled', {
 	Text = 'Enabled',
 	Default = false,
@@ -1584,7 +1502,7 @@ WeaponModsGroup:AddSlider('WeaponModsFireRateValue', {
 
 WeaponModsGroup:AddDivider()
 
-WeaponModsGroup:AddToggle('WeaponModsReloadTimeRate', {
+WeaponModsGroup:AddToggle('WeaponModsReloadTime', {
 	Text = 'Reload Time',
 	Default = false,
 	Tooltip = 'Change the weapon reload time',
@@ -1635,6 +1553,18 @@ WeaponModsGroup:AddDivider()
 WeaponModsGroup:AddLabel('Put just 1 attachment for')
 WeaponModsGroup:AddLabel('it to work')
 
+MiscGroup:AddToggle('NoAmbientNoise', {
+	Text = 'No Ambient Noise',
+	Default = false,
+	Tooltip = 'Mutes/Unmutes the ambient noise',
+
+	Callback = function(Value)
+		if Value == true then
+			
+		end
+	end
+})
+
 function WeaponMods(weapon)
 	for _, children in ipairs(weapon.AttachmentFolder:GetChildren()) do
 		if children:IsA("Tool") then
@@ -1643,10 +1573,10 @@ function WeaponMods(weapon)
 			if modfolder ~= nil then
 				if WeaponMods.RE == true then
 					if modfolder:FindFirstChild("GunRecoil") then
-						modfolder:FindFirstChild("GunRecoil"):Destroy()
+						modfolder.GunRecoil:Destroy()
 					end
 					if modfolder:FindFirstChild("GunRecoilX") then
-						modfolder:FindFirstChild("GunRecoilX"):Destroy()
+						modfolder.GunRecoilX:Destroy()
 					end	
 					wait(0.01)
 					local customrecoil = Instance.new("NumberValue", modfolder)
@@ -1662,7 +1592,7 @@ function WeaponMods(weapon)
 				end
 				if WeaponMods.ATE == true then
 					if modfolder:FindFirstChild("AimTime") then
-						modfolder:FindFirstChild("AimTime"):Destroy()
+						modfolder.AimTime:Destroy()
 					end
 					wait(0.01)
 					local customaimtime = Instance.new("NumberValue", modfolder)
@@ -1674,7 +1604,7 @@ function WeaponMods(weapon)
 				end
 				if WeaponMods.FRE == true then
 					if modfolder:FindFirstChild("waittime") then
-						modfolder:FindFirstChild("waittime"):Destroy()
+						modfolder.waittime:Destroy()
 					end
 					wait(0.01)
 					local customfirerate = Instance.new("NumberValue", modfolder)
@@ -1686,7 +1616,7 @@ function WeaponMods(weapon)
 				end
 				if WeaponMods.RTE == true then
 					if modfolder:FindFirstChild("ReloadSpeed") then
-						modfolder:FindFirstChild("ReloadSpeed"):Destroy()
+						modfolder.ReloadSpeed:Destroy()
 					end
 					wait(0.01)
 					local customreloadtime = Instance.new("NumberValue", modfolder)
@@ -1701,29 +1631,142 @@ function WeaponMods(weapon)
 	end
 end
 
+if LocalPlayer.Character then
+	LocalPlayer.Character.ChildAdded:Connect(function(tool)
+		if tool:IsA("Tool") then
+			if WeaponMods.Enabled == true then
+				WeaponMods(tool)
+				Options.WeaponModsRecoilValue:OnChanged(function()
+					WeaponMods(tool)
+				end)
+				Options.WeaponModsAimTimeValue:OnChanged(function()
+					WeaponMods(tool)
+				end)
+				Options.WeaponModsFireRateValue:OnChanged(function()
+					WeaponMods(tool)
+				end)
+				Options.WeaponModsReloadTimeValue:OnChanged(function()
+					WeaponMods(tool)
+				end)
+			end
+		end
+	end)
+end
+
 LocalPlayer.CharacterAdded:Connect(function()
 	if LocalPlayer.Character then
 		LocalPlayer.Character.ChildAdded:Connect(function(tool)
 			if tool:IsA("Tool") then
 				if WeaponMods.Enabled == true then
 					WeaponMods(tool)
-				end				
+					Options.WeaponModsRecoilValue:OnChanged(function()
+						WeaponMods(tool)
+					end)
+					Options.WeaponModsAimTimeValue:OnChanged(function()
+						WeaponMods(tool)
+					end)
+					Options.WeaponModsFireRateValue:OnChanged(function()
+						WeaponMods(tool)
+					end)
+					Options.WeaponModsReloadTimeValue:OnChanged(function()
+						WeaponMods(tool)
+					end)
+				end
 			end
 		end)
 	end
 end)
 
-MiscGroup:AddToggle('NoAmbientNoise', {
-	Text = 'No Ambient Noise',
-	Default = false,
-	Tooltip = 'Mutes/Unmutes the ambient noise',
+if LocalPlayer.Character then
+    LocalPlayer.Character.ChildAdded:Connect(function(child)
+        if VM == true then
+            if child:IsA("Tool") then
+                child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
+                Options.VMX:OnChanged(function()
+                    child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
+                end)
+                Options.VMY:OnChanged(function()
+                    child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
+                end)
+                Options.VMZ:OnChanged(function()
+                    child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
+                end)
+            end
+        end
+    end)
+end
 
-	Callback = function(Value)
-		if Value == true then
-			
+LocalPlayer.CharacterAdded:Connect(function()
+	if LocalPlayer.Character then
+		LocalPlayer.Character.ChildAdded:Connect(function(child)
+			if VM == true then
+				if child:IsA("Tool") then
+					child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
+					Options.VMX:OnChanged(function()
+						child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
+					end)
+					Options.VMY:OnChanged(function()
+						child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
+					end)
+					Options.VMZ:OnChanged(function()
+						child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
+					end)
+				end
+			end
+		end)
+	end
+end)
+
+function WeaponModel(weapon)
+	for _, descendant in ipairs(weapon:GetDescendants()) do
+		if descendant:IsA("SurfaceAppearance") then
+			descendant:Destroy()
+		elseif descendant:IsA("MeshPart") and descendant.TextureID ~= "" then
+			descendant.TextureID = ""
+		end
+		if descendant:IsA("MeshPart") or descendant:IsA("Part") then
+			descendant.Material = Material
+			descendant.Color = MaterialColor
 		end
 	end
-})
+end
+
+if LocalPlayer.Character then
+	LocalPlayer.Character.ChildAdded:Connect(function(tool)
+		if MM == true then
+			if tool:IsA("Tool") then
+				WeaponModel(tool)
+			end
+		end
+	end)
+end
+
+LocalPlayer.CharacterAdded:Connect(function()
+	if LocalPlayer.Character then
+		LocalPlayer.Character.ChildAdded:Connect(function(tool)
+			if MM == true then
+				if tool:IsA("Tool") then
+					WeaponModel(tool)
+				end
+			end
+		end)
+	end
+end)
+
+local LoopConnections = RunService.RenderStepped:Connect(function()
+	if AntiAim.Enabled == true then					
+		game:GetService("ReplicatedStorage"):WaitForChild("CameraEvent"):FireServer({CFrame.new(AntiAim.PX, AntiAim.PY, AntiAim.PZ, AntiAim.RVX, AntiAim.RVY, AntiAim.RVZ, AntiAim.UVX, AntiAim.UVY, AntiAim.UVZ, AntiAim.LVX, AntiAim.LVY, AntiAim.LVZ), 0, 0.01, true, CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1) })
+	end
+	if LightingEnabled == true then
+		Lighting.Brightness = BrightnessValue
+		Lighting.ClockTime = CT
+		Lighting.GlobalShadows = Shadows
+		Lighting.OutdoorAmbient = AmbientColor
+	end
+	if FC == true then
+		Camera.FieldOfView = FCV
+	end
+end)
 
 Library:SetWatermarkVisibility(true)
 
@@ -1740,9 +1783,10 @@ local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(
         FrameCounter = 0;
     end;
 
-    Library:SetWatermark(('Meonkify | %s fps | %s ms | Game: Town'):format(
+    Library:SetWatermark(('Meonkify | %s fps | %s ms | Game: %s'):format(
         math.floor(FPS),
-        math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
+        math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue()),
+		math.floor(game.PlaceId.Name)
     ));
 end);
 
@@ -1755,8 +1799,7 @@ Library:OnUnload(function()
 	ESP.DestroyFunction()
 	VM = false
 	MM = false
-	LightingLoop:Disconnect()
-	AA = false
+	LoopConnections:Disconnect()
 	WeaponMods = false
 	FC = false
 end)
