@@ -1,3 +1,4 @@
+-- I HIGHLY don't recommend using this since it is broken and unoptimized.
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
