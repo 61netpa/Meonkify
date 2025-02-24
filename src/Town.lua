@@ -1,4 +1,6 @@
+-- Made by netpa with love. It was fun making this script. Also you are NOT allowed to completely copy and paste this code and claiming it as your own.
 -- Thanks to legitimate0x1 for helping me out on this! This would be so bad if he wouldn't help. :skull:
+-- Also huge thanks to people who helped me test this script.
 
 local StartTick = tick()
 
