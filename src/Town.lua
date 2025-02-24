@@ -1,381 +1,440 @@
--- I HIGHLY don't recommend using this since it is broken and unoptimized.
+-- Thanks to legitimate0x1 for helping me out on this! This would be so bad if he wouldn't help. :skull:
+
+local StartTick = tick()
+
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
-local Window = Library:CreateWindow({
-	Title = 'Meonkify',
-	Center = true,
-	AutoShow = true,
-	TabPadding = 8,
-	MenuFadeTime = 0.175
-})
+local MarketplaceService = cloneref(game:GetService("MarketplaceService"))
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local TweenService = cloneref(game:GetService("TweenService"))
+local RunService = cloneref(game:GetService("RunService"))
+local Workspace = cloneref(game:GetService("Workspace"))
+local Lighting = cloneref(game:GetService("Lighting"))
+local Players = cloneref(game:GetService("Players"))
+local Stats = cloneref(game:GetService("Stats"))
 
-Library:Notify('For best experience we recommend you to reset your character! (Optional)')
-
---// Storage
-
-local X = {}
-local Y = {}
-local Z = {}
-local VM = {}
-local Material = Air
-local MaterialColor = {}
-local MM = {}
-local LightingEnabled = {}
-local CT = 24
-local BrightnessValue = 2
-local GS = false
-local HF = {}
-local FC = {}
-local FCV = {}
-local AmbientColor = {}
-local WeaponMods = {
-	Enabled = false
-	R = {}
-	AT = {}
-	FR = {}
-	RT = {}
-	RE = {}
-	AZM = {}
-	ATE = {}
-	FRE = {}
-	RTE = {}
-}
-local WMR = {}
-local WMAT = {}
-local WMFR = {}
-local WMRT = {}
-local WMRE = {}
-local WMAZM = {}
-local WMATE = {}
-local WMFRE = {}
-local WMRTE = {}
-local WMAZME = {}
-local WhitelistedPlayers = {}
-local Materials = {}
-local AntiAim = {
-	Enabled = false
-	HH = {}
-	PX = {}
-	PY = {}
-	PZ = {}
-	RVX = {}
-	RVY = {}
-	RVZ = {}
-	UVX = {}
-	UVY = {}
-	UVZ = {}
-	LVX = {}
-	LVY = {}
-	LVZ = {}
-}
-
---// Cache
-
-local select = select
-local pcall, getgenv, next, Vector2, mathclamp, type, mousemoverel = select(1, pcall, getgenv, next, Vector2.new, math.clamp, type, mousemoverel or (Input and Input.MouseMove))
-
---// Preventing Multiple Processes
-
-pcall(function()
-	getgenv().TAimbot.Functions:Exit()
-end)
-
---// Environment
-
-getgenv().TAimbot = {}
-local Environment = getgenv().TAimbot
-
---// Services
-
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
-local Camera = Workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
-
---// Variables
-
-local RequiredDistance, Typing, Running, Animation, ServiceConnections = 2000, false, false, nil, {}
-
---// Script Settings
-
-Environment.Settings = {
-	Enabled = false,
-	TeamCheck = false,
-	AliveCheck = false,
-	WallCheck = false, -- Laggy
-	WhitelistCheck = false,
-	Sensitivity = 0, -- Animation length (in seconds) before fully locking onto target
-	ThirdPerson = false, -- Uses mousemoverel instead of CFrame to support locking in third person (could be choppy)
-	ThirdPersonSensitivity = 3, -- Boundary: 0.1 - 5
-	TriggerKey = "MouseButton2",
-	Toggle = false,
-	LockPart = "Head" -- Body part to lock on
-}
-
-Environment.FOVSettings = {
-	Enabled = true,
-	Visible = true,
-	Amount = 90,
-	Color = Color3.fromRGB(255, 255, 255),
-	LockedColor = Color3.fromRGB(255, 70, 70),
-	Transparency = 0.5,
-	Sides = 60,
-	Thickness = 1,
-	Filled = false
-}
-
-Environment.FOVCircle = Drawing.new("Circle")
-
---// Functions
-
-local function CancelLock()
-	Environment.Locked = nil
-	if Animation then Animation:Cancel() end
-	Environment.FOVCircle.Color = Environment.FOVSettings.Color
-end
-
-local function GetClosestPlayer()
-	if not Environment.Locked then
-		RequiredDistance = (Environment.FOVSettings.Enabled and Environment.FOVSettings.Amount or 2000)
-
-		for _, v in next, Players:GetPlayers() do
-			if v ~= LocalPlayer then
-				if v.Character and v.Character:FindFirstChild(Environment.Settings.LockPart) and v.Character:FindFirstChildOfClass("Humanoid") then
-					if Environment.Settings.TeamCheck and v.Team == LocalPlayer.Team then continue end
-					if Environment.Settings.AliveCheck and v.Character:FindFirstChild("Downed") then continue end
-					if Environment.Settings.WallCheck and #(Camera:GetPartsObscuringTarget({v.Character[Environment.Settings.LockPart].Position}, v.Character:GetDescendants())) > 0 then continue end
-					if Environment.Settings.WhitelistCheck then continue end
-
-					local Vector, OnScreen = Camera:WorldToViewportPoint(v.Character[Environment.Settings.LockPart].Position)
-					local Distance = (Vector2(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2(Vector.X, Vector.Y)).Magnitude
-
-					if Distance < RequiredDistance and OnScreen then
-						RequiredDistance = Distance
-						Environment.Locked = v
-					end
-				end
-			end
-		end
-	elseif (Vector2(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2(Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position).X, Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position).Y)).Magnitude > RequiredDistance then
-		CancelLock()
-	end
-end
-
---// Typing Check
-
-ServiceConnections.TypingStartedConnection = UserInputService.TextBoxFocused:Connect(function()
-	Typing = true
-end)
-
-ServiceConnections.TypingEndedConnection = UserInputService.TextBoxFocusReleased:Connect(function()
-	Typing = false
-end)
-
---// Main
-
-local function Load()
-	ServiceConnections.RenderSteppedConnection = RunService.RenderStepped:Connect(function()
-		if Environment.FOVSettings.Enabled and Environment.Settings.Enabled then
-			Environment.FOVCircle.Radius = Environment.FOVSettings.Amount
-			Environment.FOVCircle.Thickness = Environment.FOVSettings.Thickness
-			Environment.FOVCircle.Filled = Environment.FOVSettings.Filled
-			Environment.FOVCircle.NumSides = Environment.FOVSettings.Sides
-			Environment.FOVCircle.Color = Environment.FOVSettings.Color
-			Environment.FOVCircle.Transparency = Environment.FOVSettings.Transparency
-			Environment.FOVCircle.Visible = Environment.FOVSettings.Visible
-			Environment.FOVCircle.Position = Vector2(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
-		else
-			Environment.FOVCircle.Visible = false
-		end
-
-		if Running and Environment.Settings.Enabled then
-			GetClosestPlayer()
-
-			if Environment.Locked then
-				if Environment.Settings.ThirdPerson then
-					Environment.Settings.ThirdPersonSensitivity = mathclamp(Environment.Settings.ThirdPersonSensitivity, 0.1, 5)
-
-					local Vector = Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position)
-					mousemoverel((Vector.X - UserInputService:GetMouseLocation().X) * Environment.Settings.ThirdPersonSensitivity, (Vector.Y - UserInputService:GetMouseLocation().Y) * Environment.Settings.ThirdPersonSensitivity)
-				else
-					if Environment.Settings.Sensitivity > 0 then
-						Animation = TweenService:Create(Camera, TweenInfo.new(Environment.Settings.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, Environment.Locked.Character[Environment.Settings.LockPart].Position)})
-						Animation:Play()
-					else
-						Camera.CFrame = CFrame.new(Camera.CFrame.Position, Environment.Locked.Character[Environment.Settings.LockPart].Position)
-					end
-				end
-
-			Environment.FOVCircle.Color = Environment.FOVSettings.LockedColor
-
-			end
-		end
-	end)
-
-	ServiceConnections.InputBeganConnection = UserInputService.InputBegan:Connect(function(Input)
-		if not Typing then
-			pcall(function()
-				if Input.KeyCode == Enum.KeyCode[Environment.Settings.TriggerKey] then
-					if Environment.Settings.Toggle then
-						Running = not Running
-
-						if not Running then
-							CancelLock()
-						end
-					else
-						Running = true
-					end
-				end
-			end)
-
-			pcall(function()
-				if Input.UserInputType == Enum.UserInputType[Environment.Settings.TriggerKey] then
-					if Environment.Settings.Toggle then
-						Running = not Running
-
-						if not Running then
-							CancelLock()
-						end
-					else
-						Running = true
-					end
-				end
-			end)
-		end
-	end)
-
-	ServiceConnections.InputEndedConnection = UserInputService.InputEnded:Connect(function(Input)
-		if not Typing then
-			if not Environment.Settings.Toggle then
-				pcall(function()
-					if Input.KeyCode == Enum.KeyCode[Environment.Settings.TriggerKey] then
-						Running = false; CancelLock()
-					end
-				end)
-
-				pcall(function()
-					if Input.UserInputType == Enum.UserInputType[Environment.Settings.TriggerKey] then
-						Running = false; CancelLock()
-					end
-				end)
-			end
-		end
-	end)
-end
-
---// Functions
-
-Environment.Functions = {}
-
-function Environment.Functions:Exit()
-	for _, v in next, ServiceConnections do
-		v:Disconnect()
-	end
-
-	if Environment.FOVCircle.Remove then Environment.FOVCircle:Remove() end
-
-	getgenv().TAimbot.Functions = nil
-	getgenv().TAimbot = nil
-	
-	Load = nil; GetClosestPlayer = nil; CancelLock = nil
-end	
-
-function Environment.Functions:Restart()
-	for _, v in next, ServiceConnections do
-		v:Disconnect()
-	end
-
-	Load()
-end
-
-function Environment.Functions:ResetSettings()
-	Environment.Settings = {
-		Enabled = false,
-		TeamCheck = false,
-		AliveCheck = true,
-		WallCheck = false,
-		Sensitivity = 0, -- Animation length (in seconds) before fully locking onto target
-		ThirdPerson = false, -- Uses mousemoverel instead of CFrame to support locking in third person (could be choppy)
-		ThirdPersonSensitivity = 3, -- Boundary: 0.1 - 5
-		TriggerKey = "MouseButton2",
-		Toggle = false,
-		LockPart = "Head" -- Body part to lock on
-	}
-
-	Environment.FOVSettings = {
-		Enabled = true,
-		Visible = true,
-		Amount = 90,
-		Color = Color3.fromRGB(255, 255, 255),
-		LockedColor = Color3.fromRGB(255, 70, 70),
-		Transparency = 0.5,
-		Sides = 60,
-		Thickness = 1,
-		Filled = false
-	}
-end
-
-Load()
-
+local Camera = Workspace.CurrentCamera
+local RenderStepped = RunService.RenderStepped
+local WaitForSomeone = RenderStepped.Wait
+local Debug = function() print(debug.info(2, "l")) end
+local Olds = { Ambient = Lighting.OutdoorAmbient }
+local Jitter = false
 local PlayerDrawings = {}
 local Utility = {}
+local FrameTimer = tick()
+local FrameCounter = 0;
+local FPS = 60;
 
-local Workspace = game:GetService("Workspace")
-
-getgenv().ESP = {
-	Enabled = false,
-	Box = false,
-	Penis = false,
-	Health = false,
-	LookDir = false,
-	Skeleton = false,
-	Name = false,
-	NameType = "Username",
-	Indicators = {
-		["Enabled"] = true,
-		["Tools"] = false,
-		["Distance"] = false
+getgenv().Meonkify = {
+	Combat = {
+		Aimbot = {
+			Enabled = false,
+			Smoothness = 0,
+			StickyAim = true,
+			TargetPart = "Head",
+			FOV = {
+				Visible = true,
+				Color = Color3.fromRGB(255, 255, 255),
+				ChangeColor = false,
+				ChangedColor = Color3.fromRGB(255, 54, 54),
+			},
+			Checks = {
+				AliveCheck = false,
+				VisibleCheck = false,
+				ForceFieldCheck = false
+			},
+			Radius = 90,
+			Targeted = nil,
+			KeyPressed = false,
+			Tween = nil
+		},
+		SilentAim = {
+			Enabled = false,
+			TargetPart = "Head",
+			Radius = 90,
+			FOV = {
+				Visible = true,
+				Color = Color3.fromRGB(255, 255, 255)
+			},
+			Checks = {
+				AliveCheck = false,
+				VisibleCheck = false,
+				ForceFieldCheck = false
+			},
+		},
+		AntiAim = {
+			Enabled = false,
+			Yaw = 0,
+			YawJitter = 0,
+			Pitch = 0,
+			PitchJitter = 0,
+			Offset = "World"
+		},
+		GunMods = {
+			Enabled = false,
+			Recoil = {
+				Enabled = false,
+				Value = 0
+			},
+			AimFOV = {
+				Enabled = false,
+				Value = 70
+			},
+			ReloadTime = {
+				Enabled = false,
+				Value = 0.0001
+			},
+			FireRate = {
+				Enabled = false,
+				Value = 0
+			},
+			AimTime = {
+				Enabled = false,
+				Value = 0
+			},
+			Mode = "require"       
+		}
 	},
-	MaxDistance = 100000,
-	OutOfFoV = {enemies = false, teammates = false, offset = 400, size = 15, settings = {Combo = {["outline"] = false, ["blinking"] = false}}},
-	Enemies = true,
-	Teammates = true,
-	Font = "Flex",
-	Surround = "none",
-	BoxColor = Color3.fromRGB(255, 255, 255),
-	HealthColor = Color3.new(0, 1, 0),
-	NameColor = Color3.fromRGB(255, 255, 255),
-	IndicatorsColor = Color3.fromRGB(255, 255, 255),
-	EnemiesColor = Color3.fromRGB(255, 255, 255),
-	TeammatesColor = Color3.fromRGB(255, 255, 255),
-	PenisColor = Color3.fromRGB(255, 255, 255),
-	LookDirColor = Color3.fromRGB(255, 255, 255),
-	Connections = {},
-	DestroyFunction = function()
-		for A_1, A_2 in pairs(getgenv().ESP.Connections) do
-			A_2:Disconnect()
-			A_2 = nil
-		end
-		
-		for A_1, A_2 in pairs(Players:GetPlayers()) do
-			if PlayerDrawings[A_2] then
-				for A_3, A_4 in pairs(PlayerDrawings[A_2]) do
-					A_4:Remove()
+	Visuals = {
+		ESP = {
+			Enabled = false,
+			Box = false,
+			BoxColor = Color3.fromRGB(255, 255, 255),
+			HealthBar = false,
+			HealthBarColor = Color3.fromRGB(0, 255, 0),
+			Name = false,
+			NameColor = Color3.fromRGB(255, 255, 255),
+			NameMode = "Username",
+			Tool = false,
+			ToolColor = Color3.fromRGB(255, 255, 255),
+			Distance =  false,
+			DistanceColor = Color3.fromRGB(255, 255, 255),
+			Font = "Plex",
+			MaxDistance = 100000
+		},
+		ViewModel = {
+			Enabled = false,
+			XOffset = 0,
+			YOffset = 0,
+			ZOffset = 0
+		},
+		WeaponModel = {
+			Enabled = false,
+			Color = Color3.fromRGB(255, 255, 255),
+			Material = "ForceField"
+		}
+	},
+	World = {
+		Enabled = false,
+		Clock = false,
+		ClockTime = 14,
+		Ambient = false,
+		AmbientColor = Color3.fromRGB(128, 128, 128),
+		Brightness = false,
+		BrightnessValue = 2
+	},
+	Misc = {
+		PlayerUtilities = {
+			Target = nil,
+			LoopKill = false,
+			LoopKillAll = false,
+			LoopKillOthers = false
+		},
+		LocalPlayer = {
+			FastHeal = false,
+			AutoSelfRevive = false,
+			AutoSelfReviveMode = 'RenderStepped'
+		},
+		HealAura = {
+			Enabled = false,
+			Range = 50,
+			Mode = "Blacklist",
+			PlayerList = {}
+		},
+		PenisGunTool = nil
+	},
+	Connections = {}
+}
+local Meonkify = getgenv().Meonkify
+local CombatEnv = Meonkify.Combat
+local AimbotEnv = CombatEnv.Aimbot
+local SilentAimEnv = CombatEnv.SilentAim
+local AntiAimEnv = CombatEnv.AntiAim
+local GunModsEnv = CombatEnv.GunMods
+local VisualsEnv = Meonkify.Visuals
+local ESPEnv = VisualsEnv.ESP
+local ViewModelEnv = VisualsEnv.ViewModel
+local WeaponmodelEnv = VisualsEnv.WeaponModel
+local WorldEnv = Meonkify.World
+local MiscEnv = Meonkify.Misc
+local PlayerUtilitiesEnv = MiscEnv.PlayerUtilities
+local LocalPlayerEnv = MiscEnv.LocalPlayer
+local HealAuraEnv = MiscEnv.HealAura
+local Connections = Meonkify.Connections
+local Options = getgenv().Options -- Studio testing too lazy to remove it :speaking_head:
+local Toggles = getgenv().Toggles -- Studio testing too lazy to remove it :speaking_head:
+
+AimbotEnv.FOVCircle = Drawing.new("Circle")
+AimbotEnv.FOVCircle.Filled = false
+AimbotEnv.FOVCircle.Thickness = 1
+
+SilentAimEnv.FOVCircle = Drawing.new("Circle")
+SilentAimEnv.FOVCircle.Filled = false
+SilentAimEnv.FOVCircle.Thickness = 1
+
+local AimbotRequiredDistance = AimbotEnv.Radius
+local SilentAimRequiredDistance = SilentAimEnv.Radius
+
+function EndAimbot() -- I couldn't find a better name for this lmao. KILL AIMBOT!!! 💀💀💀💀
+	AimbotEnv.Targeted = nil
+	if AimbotEnv.Tween ~= nil then
+		AimbotEnv.Tween:Cancel()
+	end
+end
+
+function AimbotGetClosestPlayer()  -- This is the most unoptimized GetClosestPlayer you will ever see.
+	if AimbotEnv.StickyAim then
+		if not AimbotEnv.Targeted then
+			AimbotRequiredDistance = AimbotEnv.Radius
+			for _, v in next, Players:GetPlayers() do
+				local Character = v.Character
+				local Downed = Character and Character:FindFirstChild("Downed")
+				local TargetPart = Character and Character:FindFirstChild(AimbotEnv.TargetPart)
+				local ForceField = Character and Character:FindFirstChildOfClass("ForceField")
+				if v ~= LocalPlayer and Character and TargetPart ~= nil then
+					if AimbotEnv.Checks.AliveCheck and Downed ~= nil then continue end
+					if AimbotEnv.Checks.VisibleCheck then local VCR = Ray.new(Camera.CFrame.Position, (v.Character.HumanoidRootPart.Position - Camera.CFrame.Position)); local IsObstructed = Workspace:FindPartOnRayWithIgnoreList(VCR, {LocalPlayer.Character, v.Character}); if IsObstructed then continue end end
+					if AimbotEnv.Checks.ForceFieldCheck and ForceField ~= nil then continue end
+					local Vector, OnScreen = Camera:WorldToViewportPoint(TargetPart.Position)
+					local Distance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(Vector.X, Vector.Y)).Magnitude
+					if Distance < AimbotRequiredDistance and OnScreen then
+						AimbotRequiredDistance = Distance
+						AimbotEnv.Targeted = v
+					end
 				end
 			end
 		end
-		
-		getgenv().ESP = nil
+	else
+		AimbotRequiredDistance = AimbotEnv.Radius
+		for _, v in next, Players:GetPlayers() do
+			local Character = v.Character
+			local Downed = Character and Character:FindFirstChild("Downed")
+			local TargetPart = Character and Character:FindFirstChild(AimbotEnv.TargetPart)
+			local ForceField = Character and Character:FindFirstChildOfClass("ForceField")
+			if v ~= LocalPlayer and Character and TargetPart ~= nil then
+				if AimbotEnv.Checks.AliveCheck and Downed ~= nil then continue end
+				if AimbotEnv.Checks.VisibleCheck then local VCR = Ray.new(Camera.CFrame.Position, (v.Character.HumanoidRootPart.Position - Camera.CFrame.Position)); local IsObstructed = Workspace:FindPartOnRayWithIgnoreList(VCR, {LocalPlayer.Character, v.Character}); if IsObstructed then continue end end
+				if AimbotEnv.Checks.ForceFieldCheck and ForceField ~= nil then continue end
+				local Vector, OnScreen = Camera:WorldToViewportPoint(TargetPart.Position)
+				local Distance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(Vector.X, Vector.Y)).Magnitude
+				if Distance < AimbotRequiredDistance and OnScreen then
+					AimbotRequiredDistance = Distance
+					AimbotEnv.Targeted = v
+				end
+			end
+		end
 	end
-}
+	if AimbotEnv.Targeted ~= nil then
+		if (not Players:FindFirstChild(AimbotEnv.Targeted.Name) or (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(Camera:WorldToViewportPoint(AimbotEnv.Targeted.Character[AimbotEnv.TargetPart].Position).X, Camera:WorldToViewportPoint(AimbotEnv.Targeted.Character[AimbotEnv.TargetPart].Position).Y)).Magnitude > AimbotEnv.Radius) then
+			EndAimbot()
+		elseif AimbotEnv.Checks.VisibleCheck then
+			local VCR = Ray.new(Camera.CFrame.Position, (AimbotEnv.Targeted.Character.HumanoidRootPart.Position - Camera.CFrame.Position))
+			local IsObstructed = Workspace:FindPartOnRayWithIgnoreList(VCR, {LocalPlayer.Character, AimbotEnv.Targeted.Character})
+			if IsObstructed then EndAimbot() end
+		end
+	end
+end
+
+function SilentAimGetClosestPlayer()
+	local Target = nil
+	SilentAimRequiredDistance = SilentAimEnv.Radius
+	for _, v in next, Players.GetPlayers(Players) do
+		local Character = v.Character
+		local Downed = Character and Character.FindFirstChild(Character, "Downed")
+		local TargetPart = Character and Character.FindFirstChild(Character, SilentAimEnv.TargetPart)
+		local ForceField = Character and Character.FindFirstChildOfClass(Character, "ForceField")
+		if v ~= LocalPlayer and Character and TargetPart ~= nil then
+			if SilentAimEnv.Checks.AliveCheck and Downed ~= nil then continue end
+			if SilentAimEnv.Checks.VisibleCheck then local VCR = Ray.new(Camera.CFrame.Position, (v.Character.HumanoidRootPart.Position - Camera.CFrame.Position)); local IsObstructed = Workspace.FindPartOnRayWithIgnoreList(Workspace, VCR, {LocalPlayer.Character, Character}); if IsObstructed then continue end end
+			if SilentAimEnv.Checks.ForceFieldCheck and ForceField ~= nil then continue end
+			local Vector, OnScreen = Camera.WorldToScreenPoint(Camera, TargetPart.Position)
+			local Distance = (Vector2.new(UserInputService.GetMouseLocation(UserInputService).X, UserInputService.GetMouseLocation(UserInputService).Y) - Vector2.new(Vector.X, Vector.Y)).Magnitude
+			if Distance < SilentAimRequiredDistance and OnScreen then
+				SilentAimRequiredDistance = Distance
+				Target = v
+			end
+		end
+	end
+	return Target
+end
+
+function GunMods(Weapon)
+	local SettingsModule = Weapon and Weapon:FindFirstChild("Settings")
+	local AttachmentsFolder = Weapon and Weapon:FindFirstChild("AttachmentFolder")
+	if GunModsEnv.Mode == "require" and SettingsModule ~= nil then
+		local Module = require(SettingsModule)
+		if GunModsEnv.Recoil.Enabled then
+			Module.GunRecoil = GunModsEnv.Recoil.Value
+			Module.GunRecoilX = GunModsEnv.Recoil.Value
+		end
+		if GunModsEnv.AimFOV.Enabled then
+			Module.AimFov = GunModsEnv.AimFOV.Value
+		end
+		if GunModsEnv.ReloadTime.Enabled then
+			Module.ReloadSpeed = GunModsEnv.ReloadTime.Value
+			Module.ReloadSpeed2 = GunModsEnv.ReloadTime.Value
+		end
+		if GunModsEnv.FireRate.Enabled then
+			Module.waittime = GunModsEnv.FireRate.Value
+		end
+		if GunModsEnv.AimTime.Enabled then
+			Module.AimSpeed = GunModsEnv.AimTime.Value
+		end
+	elseif GunModsEnv.Mode == "Attachments" and AttachmentsFolder ~= nil then
+		for _, v in pairs(AttachmentsFolder:GetChildren()) do
+			if v:IsA("Tool") and v:FindFirstChild("Stats") ~= nil then
+				if GunModsEnv.Recoil.Enabled then
+					if v.Stats:FindFirstChild("GunRecoil") ~= nil then v.Stats.GunRecoil:Remove() end
+					if v.Stats:FindFirstChild("GunRecoilX") ~= nil then v.Stats.GunRecoilX:Remove() end
+					local GunRecoilValue = Instance.new("NumberValue")
+					local GunRecoilXValue = Instance.new("NumberValue")
+					GunRecoilValue.Name = "GunRecoil"
+					GunRecoilValue.Parent = v.Stats
+					GunRecoilValue.Value = GunModsEnv.Recoil.Value
+					GunRecoilXValue.Name = "GunRecoilX"
+					GunRecoilXValue.Parent = v.Stats
+					GunRecoilXValue.Value = GunModsEnv.Recoil.Value
+				end
+				if GunModsEnv.AimFOV.Enabled then
+					if v.Stats:FindFirstChild("AimFov") ~= nil then v.Stats.AimFov:Remove() end
+					local AimFOVValue = Instance.new("NumberValue")
+					AimFOVValue.Parent = v.Stats
+					AimFOVValue.Name = "AimFov"
+					AimFOVValue.Value = GunModsEnv.AimFOV.Value
+				end
+				if GunModsEnv.ReloadTime.Enabled then
+					if v.Stats:FindFirstChild("ReloadSpeed") ~= nil then v.Stats.ReloadSpeed:Remove() end
+					if v.Stats:FindFirstChild("ReloadSpeed2") ~= nil then v.Stats.ReloadSpeed2:Remove() end
+					local ReloadSpeedValue = Instance.new("NumberValue")
+					local ReloadSpeed2Value = Instance.new("NumberValue")
+					ReloadSpeedValue.Value = GunModsEnv.ReloadTime.Value
+					ReloadSpeedValue.Parent = v.Stats
+					ReloadSpeedValue.Name = "ReloadSpeed"
+					ReloadSpeed2Value.Value = GunModsEnv.ReloadTime.Value
+					ReloadSpeed2Value.Parent = v.Stats
+					ReloadSpeed2Value.Name = "ReloadSpeed2"
+				end
+				if GunModsEnv.FireRate.Enabled then
+					if v.Stats:FindFirstChild("waittime") ~= nil then v.Stats.waittime:Remove() end
+					local waittimeValue = Instance.new("NumberValue")
+					waittimeValue.Parent = v.Stats
+					waittimeValue.Value = GunModsEnv.FireRate.Value
+					waittimeValue.Name = "waittime"
+				end
+				if GunModsEnv.AimTime.Enabled then
+					if v.Stats:FindFirstChild("AimSpeed") ~= nil then v.Stats.AimSpeed:Remove() end
+					local AimSpeedValue = Instance.new("NumberValue")
+					AimSpeedValue.Parent = v.Stats
+					AimSpeedValue.Value = GunModsEnv.AimTime.Value
+					AimSpeedValue.Name = "AimSpeed"
+				end
+			end
+		end
+	end
+end
+
+function Kill(PlayerName)
+	if LocalPlayer.Character and Players:FindFirstChild(PlayerName) ~= nil then
+		local Player = Players[PlayerName]
+		local Character = Player.Character
+		local ForceField = Character and Character:FindFirstChildOfClass("ForceField")
+		local Head = Character and Character:FindFirstChild("Head")
+		local AK47 = LocalPlayer.Character:FindFirstChild("AK-47")
+		local FireRemote = AK47 and AK47:FindFirstChild("FireEvent")
+		local Barrel = AK47 and AK47:FindFirstChild("BarrelHandle")
+		local Flash = AK47 and AK47:FindFirstChild("Flash")
+		local HumanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")		
+		if HumanoidRootPart ~= nil and AK47 ~= nil and Barrel ~= nil and Flash ~= nil and FireRemote ~= nil and Character and Head ~= nil and not ForceField then
+			FireRemote:FireServer({{{Head, Head.Position, Vector3.new(), Head.Material, Barrel.Position, Flash}}}, false, nil, Vector3.new(), nil, 1, 0.096, 3)
+		end
+	end
+end
+
+function Bring(PlayerName, IsDowned)
+	if LocalPlayer.Character and Players:FindFirstChild(PlayerName) ~= nil then
+		local Player = Players[PlayerName]
+		local Character = Player.Character
+		local ForceField = Character and Character:FindFirstChildOfClass("ForceField")
+		local Torso = Character and Character:FindFirstChild("Torso")
+		local Desert = LocalPlayer.Character:FindFirstChild("Desert Eagle")
+		local FireRemote = Desert and Desert:FindFirstChild("FireEvent")
+		local InteractFunc = ReplicatedStorage:FindFirstChild("InteractFunction")
+		local Barrel = Desert and Desert:FindFirstChild("BarrelHandle")
+		local Flash = Desert and Desert:FindFirstChild("Flash")
+		local HumanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+		local HealthTool = LocalPlayer.Backpack:FindFirstChild("Medkit") or LocalPlayer.Backpack:FindFirstChild("Bandage")
+		local OldPosition = HumanoidRootPart.CFrame		
+		if HumanoidRootPart ~= nil and Desert ~= nil and Barrel ~= nil and Flash ~= nil and FireRemote ~= nil and InteractFunc ~= nil and Character and Torso ~= nil and not ForceField then
+			if not Character:FindFirstChild("Downed") then
+				FireRemote:FireServer({{{Torso, Torso.Position, Vector3.new(), Torso.Material, Barrel.Position, Flash}}}, false, nil, Vector3.new(), nil, 1, 0.4, 2.2)
+			end			
+			while task.wait(0.75) do
+				if not Character:FindFirstChild("Downed") then
+					FireRemote:FireServer({{{Torso, Torso.Position, Vector3.new(), Torso.Material, Barrel.Position, Flash}}}, false, nil, Vector3.new(), nil, 1, 0.4, 2.2)
+				else
+					break
+				end
+			end
+			Desert.Parent = LocalPlayer.Backpack
+			HumanoidRootPart.CFrame = Torso.CFrame
+			task.wait()
+			InteractFunc:InvokeServer(Character, "CanCollide", true, "carryPerson", Vector3.new())
+			task.wait()
+			HumanoidRootPart.CFrame = OldPosition
+			task.wait()
+			InteractFunc:InvokeServer(Character, "CanCollide", true, "carryPerson", Vector3.new())
+			if not IsDowned and HealthTool ~= nil then
+				HealthTool.Parent = LocalPlayer.Character
+				for i = 1, 15 do
+					HealthTool.ActionMain:FireServer("heal", Character)
+				end
+			end
+		end
+	end
+end
+
+function Down(PlayerName)
+	if LocalPlayer.Character and Players:FindFirstChild(PlayerName) ~= nil then
+		local Player = Players[PlayerName]
+		local Character = Player.Character
+		local ForceField = Character and Character:FindFirstChildOfClass("ForceField")
+		local Torso = Character and Character:FindFirstChild("Torso")
+		local Desert = LocalPlayer.Character:FindFirstChild("Desert Eagle")
+		local FireRemote = Desert and Desert:FindFirstChild("FireEvent")
+		local Barrel = Desert and Desert:FindFirstChild("BarrelHandle")
+		local Flash = Desert and Desert:FindFirstChild("Flash")
+		local HumanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")		
+		if HumanoidRootPart ~= nil and Desert ~= nil and Barrel ~= nil and Flash ~= nil and Character and Torso ~= nil and not ForceField then
+			if not Character:FindFirstChild("Downed") then
+				FireRemote:FireServer({{{Torso, Torso.Position, Vector3.new(), Torso.Material, Barrel.Position, Flash}}}, false, nil, Vector3.new(), nil, 1, 0.4, 2.2)
+			end
+			while task.wait(0.75) do
+				if not Character:FindFirstChild("Downed") then
+					FireRemote:FireServer({{{Torso, Torso.Position, Vector3.new(), Torso.Material, Barrel.Position, Flash}}}, false, nil, Vector3.new(), nil, 1, 0.4, 2.2)
+				else
+					break
+				end
+			end
+		end
+	end
+end
+
 Utility.Settings = {
 	Line = {
 		Thickness = 1,
@@ -396,7 +455,7 @@ Utility.Settings = {
 	},
 	Square = {
 		Thickness = 1,
-		Color = ESP.BoxColor,
+		Color = ESPEnv.BoxColor,
 		Filled = false,
 	},
 	Triangle = {
@@ -406,43 +465,43 @@ Utility.Settings = {
 		Thickness = 1,
 	}
 }
+
 function Utility.New(Type, Outline, Name)
 	local drawing = Drawing.new(Type)
 	for i, v in pairs(Utility.Settings[Type]) do
 		drawing[i] = v
 	end
 	if Outline then
-		drawing.Color = Color3.new(0,0,0)
+		drawing.Color = Color3.new(0, 0, 0)
 		drawing.Thickness = 3
 	end
 	return drawing
 end
+
 function Utility.Add(Player)
 	if not PlayerDrawings[Player] then
 		PlayerDrawings[Player] = {
-			Offscreen = Utility.New("Triangle", nil, "Offscreen"),
+			-- Offscreen = Utility.New("Triangle", nil, "Offscreen"), Even though I included this, I didnt make it functional. Too lazy to work on all that math functions again.
 			Name = Utility.New("Text", nil, "Name"),
 			Tool = Utility.New("Text", nil, "Tool"),
 			Distance = Utility.New("Text", nil, "Distance"),
 			BoxOutline = Utility.New("Square", true, "BoxOutline"),
 			Box = Utility.New("Square", nil, "Box"),
-			Ball1 = Utility.New("Circle", nil, "Ball1"),
-			Ball2 = Utility.New("Circle", nil, "Ball2"),
-			Stick = Utility.New("Line", nil, "Stick"),
-			LookDir = Utility.New("Line", nil, "LookDir"),
 			HealthOutline = Utility.New("Line", true, "HealthOutline"),
 			Health = Utility.New("Line", nil, "Health")
 		}
 	end
 end
 
-for _, Player in pairs(Players:GetPlayers()) do	
+for _, Player in next, Players:GetPlayers() do	
 	if Player ~= LocalPlayer then
 		Utility.Add(Player)
 	end
 end
-ESP.Connections.PlayerAdded = Players.PlayerAdded:Connect(Utility.Add)
-ESP.Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(Player)
+
+Connections.PlayerAdded = Players.PlayerAdded:Connect(Utility.Add)
+
+Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(Player)
 	if PlayerDrawings[Player] then
 		for i,v in pairs(PlayerDrawings[Player]) do
 			v:Remove()
@@ -452,1399 +511,503 @@ ESP.Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(Player)
 	end
 end)
 
-local SurroundString = function(String, Add)
-	local Left = ""
-	local Right = ""
-	
-	if Add == "[]" then
-		Left = "["
-		Right = "]"
-	elseif Add == "--" then
-		Left = "-"
-		Right = "-"
-	elseif Add == "<>" then
-		Left = "<"
-		Right = ">"
+Connections.RenderSteppedConnection = RunService.RenderStepped:Connect(function()
+	if AimbotEnv.Enabled and AimbotEnv.FOV.Visible then
+		AimbotEnv.FOVCircle.Visible = true
+		AimbotEnv.FOVCircle.Color = AimbotEnv.FOV.Color
+		AimbotEnv.FOVCircle.Radius = AimbotEnv.Radius
+		AimbotEnv.FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
+	else
+		AimbotEnv.FOVCircle.Visible = false
 	end
-
-	return Left..String..Right
-end
-
-ESP.Connections.ESPLoop = RunService.RenderStepped:Connect(function()
-	pcall(function()
-	for _, Player in pairs(Players:GetPlayers()) do
-		local PlayerDrawing = PlayerDrawings[Player]
-		if not PlayerDrawing then continue end
-
-		for _, Drawing in pairs(PlayerDrawing) do
-			Drawing.Visible = false
+	if AimbotEnv.Enabled then
+		if AimbotEnv.KeyPressed then
+			AimbotGetClosestPlayer()
+			if AimbotEnv.Targeted ~= nil then
+				if AimbotEnv.Smoothness >= 0.03 then
+					AimbotEnv.Tween = TweenService:Create(Camera, TweenInfo.new(AimbotEnv.Smoothness, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, AimbotEnv.Targeted.Character[AimbotEnv.TargetPart].Position)})
+					AimbotEnv.Tween:Play()
+				else
+					Camera.CFrame = CFrame.new(Camera.CFrame.Position, AimbotEnv.Targeted.Character[AimbotEnv.TargetPart].Position)
+				end
+				if AimbotEnv.FOV.ChangeColor then
+					AimbotEnv.FOVCircle.Color = AimbotEnv.FOV.ChangedColor
+				end
+			end
 		end
-
-		local Character = Player.Character
-		local RootPart, Humanoid = Character and Character:FindFirstChild("HumanoidRootPart"), Character and Character:FindFirstChildOfClass("Humanoid")
-		if not Character or not RootPart or not Humanoid then continue end
-
-		local DistanceFromCharacter = (Camera.CFrame.Position - RootPart.Position).Magnitude
-		if ESP.MaxDistance < DistanceFromCharacter then continue end
-
-		local Pos, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
-		if not OnScreen then
-			if Player.Team ~= LocalPlayer.Team and not ESP.OutOfFoV.enemies then continue end
-			if Player.Team == LocalPlayer.Team and not ESP.OutOfFoV.teammates then continue end
-
-			local RootPos = RootPart.Position
-			local CameraVector = Camera.CFrame.Position
-			local LookVector = Camera.CFrame.LookVector
-
-			local Dot = LookVector:Dot(RootPart.Position - Camera.CFrame.Position)
-			if Dot <= 0 then
-				RootPos = (CameraVector + ((RootPos - CameraVector) - ((LookVector * Dot) * 1.01)))
-			end
-
-			local ScreenPos, OnScreen = Camera:WorldToScreenPoint(RootPos)
-			if not OnScreen then
-				local Drawing = PlayerDrawing.Offscreen
-				local FOV     = 800 - ESP.OutOfFoV.offset -- Default: 400 --> 400
-				local Size    = ESP.OutOfFoV.size -- Default: 15
-
-				local Center = (Camera.ViewportSize / 2)
-				local Direction = (Vector2(ScreenPos.X, ScreenPos.Y) - Center).Unit
-				local Radian = math.atan2(Direction.X, Direction.Y)
-				local Angle = (((math.pi * 2) / FOV) * Radian)
-				local ClampedPosition = (Center + (Direction * math.min(math.abs(((Center.Y - FOV) / math.sin(Angle)) * FOV), math.abs((Center.X - FOV) / (math.cos(Angle)) / 2))))
-				local Point = Vector2(math.floor(ClampedPosition.X - (Size / 2)), math.floor((ClampedPosition.Y - (Size / 2) - 15)))
-
-				local function Rotate(point, center, angle)
-					angle = math.rad(angle)
-					local rotatedX = math.cos(angle) * (point.X - center.X) - math.sin(angle) * (point.Y - center.Y) + center.X
-					local rotatedY = math.sin(angle) * (point.X - center.X) + math.cos(angle) * (point.Y - center.Y) + center.Y
-
-					return Vector2(math.floor(rotatedX), math.floor(rotatedY))
-				end
-
-				local Rotation = math.floor(-math.deg(Radian)) - 47
-				Drawing.PointA = Rotate(Point + Vector2(Size, Size), Point, Rotation)
-				Drawing.PointB = Rotate(Point + Vector2(-Size, -Size), Point, Rotation)
-				Drawing.PointC = Rotate(Point + Vector2(-Size, Size), Point, Rotation)
-				Drawing.Color = Player.Team ~= LocalPlayer.Team and ESP.EnemiesColor or ESP.TeammatesColor
-
-				Drawing.Filled = not ESP.OutOfFoV.settings.Combo.outline and true or false
-				if ESP.OutOfFoV.settings.Combo.blinking then
-					Drawing.Transparency = (math.sin(tick() * 5) + 1) / 2
-				else
-					Drawing.Transparency = 1
-				end
-
-				Drawing.Visible = true
-			end
+	end
+	if WorldEnv.Enabled then
+		if WorldEnv.Clock then
+			Lighting.ClockTime = WorldEnv.ClockTime
+		end
+		if WorldEnv.Ambient then
+			Lighting.OutdoorAmbient = WorldEnv.AmbientColor
 		else
-			local VisualTable = Player.Team ~= LocalPlayer.Team and ESP.Enemies or ESP.Teammates
-
-			local Size           = (Camera:WorldToViewportPoint(RootPart.Position - Vector3.new(0, 3, 0)).Y - Camera:WorldToViewportPoint(RootPart.Position + Vector3.new(0, 2.6, 0)).Y) / 2
-			local BoxSize        = Vector2(math.floor(Size * 1.5), math.floor(Size * 1.9))
-			local BoxPos         = Vector2(math.floor(Pos.X - Size * 1.5 / 2), math.floor(Pos.Y - Size * 1.6 / 2))
-
-			local Name           = PlayerDrawing.Name
-			local Tool           = PlayerDrawing.Tool
-			local Distance       = PlayerDrawing.Distance
-			local Box            = PlayerDrawing.Box
-			local Ball1			 = PlayerDrawing.Ball1
-			local Ball2			 = PlayerDrawing.Ball2
-			local Stick			 = PlayerDrawing.Stick
-			local LookDir		 = PlayerDrawing.LookDir
-			local BoxOutline     = PlayerDrawing.BoxOutline
-			local Health         = PlayerDrawing.Health
-			local HealthOutline  = PlayerDrawing.HealthOutline
-			
-			if not ESP.Enabled then continue end
-
-			if ESP.Box then
-				Box.Size = BoxSize
-				Box.Position = BoxPos
-				Box.Visible = true
-				Box.Color = ESP.BoxColor
-				Box.ZIndex = 1
-
-				BoxOutline.Size = BoxSize
-				BoxOutline.Position = BoxPos
-				BoxOutline.Visible = true
-				BoxOutline.ZIndex = 0
+			Lighting.OutdoorAmbient = Olds.Ambient
+		end
+		if WorldEnv.Brightness then
+			Lighting.Brightness = WorldEnv.BrightnessValue
+		end
+	else
+		Lighting.OutdoorAmbient = Olds.Ambient
+	end
+	if ViewModelEnv.Enabled and LocalPlayer.Character then
+		local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+		if Tool ~= nil and Tool:FindFirstChild("ViewModelOffset") ~= nil then
+			Tool.ViewModelOffset.Value = Vector3.new(ViewModelEnv.XOffset, ViewModelEnv.YOffset, ViewModelEnv.ZOffset)
+		end
+	end
+	if SilentAimEnv.Enabled and SilentAimEnv.FOV.Visible then
+		SilentAimEnv.FOVCircle.Visible = true
+		SilentAimEnv.FOVCircle.Color = SilentAimEnv.FOV.Color
+		SilentAimEnv.FOVCircle.Radius = SilentAimEnv.Radius
+		SilentAimEnv.FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
+	else
+		SilentAimEnv.FOVCircle.Visible = false
+	end
+	task.spawn(function()
+		for _, Player in pairs(Players:GetPlayers()) do
+			local PlayerDrawing = PlayerDrawings[Player]
+			if not PlayerDrawing then continue end
+			for _, Drawing in pairs(PlayerDrawing) do Drawing.Visible = false end
+			local Character = Player.Character
+			local RootPart, Humanoid = Character and Character:FindFirstChild("HumanoidRootPart"), Character and Character:FindFirstChildOfClass("Humanoid")
+			local LocalCharacter = LocalPlayer.Character
+			local LocalRootPart = LocalCharacter and LocalCharacter:FindFirstChild("HumanoidRootPart")
+			if not Character or not RootPart or not Humanoid then continue end
+			local DistanceFromCharacter
+			if LocalCharacter and LocalRootPart ~= nil and RootPart ~= nil then
+				DistanceFromCharacter = (LocalRootPart.CFrame.Position - RootPart.Position).Magnitude
+			else
+				DistanceFromCharacter = (Camera.CFrame.Position - RootPart.Position).Magnitude
 			end
-
-			if ESP.Penis then
-				local screenPos1 = Camera:WorldToViewportPoint(RootPart.Position + (RootPart.CFrame.RightVector * -0.2) + Vector3.new(0, -1, 0))
-				local screenPos2 = Camera:WorldToViewportPoint(RootPart.Position + (RootPart.CFrame.RightVector * 0.2) + Vector3.new(0, -1, 0))
-				local lineEndScreenPos = Camera:WorldToViewportPoint(RootPart.Position + (RootPart.CFrame.LookVector * 2.5) + Vector3.new(0, -1, 0))
-
-				Ball1.Visible = true
-				Ball1.Radius = 15
-				Ball1.Thickness = 2
-				Ball1.Filled = true
-
-				Ball2.Visible = true
-				Ball2.Radius = 15
-				Ball2.Thickness = 2
-				Ball2.Filled = true
-				
-				Stick.Visible = true
-				Stick.Thickness = 5
-
-				Ball1.Position = Vector2(screenPos1.X, screenPos1.Y)
-				Ball2.Position = Vector2(screenPos2.X, screenPos2.Y)
-				Stick.From = Vector2((screenPos1.X + screenPos2.X) / 2, (screenPos1.Y + screenPos2.Y) / 2)
-				Stick.To = Vector2(lineEndScreenPos.X, lineEndScreenPos.Y)
-
-				Ball1.Color = ESP.PenisColor
-				Ball2.Color = ESP.PenisColor
-				Stick.Color = ESP.PenisColor
-			end
-
-			if ESP.LookDir then
-				if Character and Character:FindFirstChild("HumanoidRootPart") then
-					local Head = Character:FindFirstChild("Head")
-
-					if Head then
-						local HeadPosition = Head.Position
-						local HeadLookVector = Head.CFrame.LookVector
-
-						local LineStartPos = Camera:WorldToViewportPoint(HeadPosition)
-						local LineEndPos = Camera:WorldToScreenPoint(HeadPosition + (HeadLookVector * 5))
-
-						LookDir.Visible = true
-						LookDir.Thickness = 1
-						LookDir.Color = ESP.LookDirColor
-
-						LookDir.From = Vector2(LineStartPos.X, LineStartPos.Y)
-						LookDir.To = Vector2(LineEndPos.X, LineEndPos.Y)
-					end
-				end
-			end
-
-			if ESP.Health then
-				Health.From = Vector2((BoxPos.X - 5), BoxPos.Y + BoxSize.Y)
-				Health.To = Vector2(Health.From.X, Health.From.Y - (Humanoid.Health / Humanoid.MaxHealth) * BoxSize.Y)
-				Health.Color = ESP.HealthColor
-				Health.Visible = true
-				Health.ZIndex = 1
-
-				HealthOutline.From = Vector2(Health.From.X, BoxPos.Y + BoxSize.Y + 1)
-				HealthOutline.To = Vector2(Health.From.X, (Health.From.Y - 1 * BoxSize.Y) -1)
-				HealthOutline.Visible = true
-				HealthOutline.ZIndex = 0
-			end
-
-			if ESP.Name then
-				local PlayerName = ""
-				
-				if ESP.NameType == "Username" then
-					PlayerName = Player.Name
-				else
-					PlayerName = Player.DisplayName
-				end
-				
-				Name.Text = SurroundString(PlayerName, ESP.Surround)
-				Name.Position = Vector2(BoxSize.X / 2 + BoxPos.X, BoxPos.Y - 16)
-				Name.Color = ESP.NameColor
-				Name.Font = Drawing.Fonts[ESP.Font]
-				Name.Visible = true
-			end
-
-			if ESP.Indicators.Enabled then
+			if ESPEnv.MaxDistance < DistanceFromCharacter then continue end
+			local Pos, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
+			if OnScreen then
+				local Size = (Camera:WorldToViewportPoint(RootPart.Position - Vector3.new(0, 3, 0)).Y - Camera:WorldToViewportPoint(RootPart.Position + Vector3.new(0, 2.6, 0)).Y) / 2
+				local BoxSize = Vector2.new(math.floor(Size * 1.5), math.floor(Size * 1.9))
+				local BoxPos = Vector2.new(math.floor(Pos.X - Size * 1.5 / 2), math.floor(Pos.Y - Size * 1.6 / 2))
+				local Name = PlayerDrawing.Name
+				local Distance = PlayerDrawing.Distance
+				local Tool = PlayerDrawing.Tool
+				local Box = PlayerDrawing.Box
+				local BoxOutline = PlayerDrawing.BoxOutline
+				local Health = PlayerDrawing.Health
+				local HealthOutline = PlayerDrawing.HealthOutline
 				local BottomOffset = BoxSize.Y + BoxPos.Y + 1
-				if ESP.Indicators.Tools then
+				if not ESPEnv.Enabled then continue end
+				if ESPEnv.Box then
+					Box.Size = BoxSize
+					Box.Position = BoxPos
+					Box.Visible = true
+					Box.Color = ESPEnv.BoxColor
+					Box.ZIndex = 1
+					BoxOutline.Size = BoxSize
+					BoxOutline.Position = BoxPos
+					BoxOutline.Visible = true
+					BoxOutline.ZIndex = 0
+				end
+				if ESPEnv.HealthBar then
+					Health.From = Vector2.new((BoxPos.X - 5), BoxPos.Y + BoxSize.Y)
+					Health.To = Vector2.new(Health.From.X, Health.From.Y - (Humanoid.Health / Humanoid.MaxHealth) * BoxSize.Y)
+					Health.Color = ESPEnv.HealthBarColor
+					Health.Visible = true
+					Health.ZIndex = 1
+					HealthOutline.From = Vector2.new(Health.From.X, BoxPos.Y + BoxSize.Y + 1)
+					HealthOutline.To = Vector2.new(Health.From.X, (Health.From.Y - 1 * BoxSize.Y) -1)
+					HealthOutline.Visible = true
+					HealthOutline.ZIndex = 0
+				end
+				if ESPEnv.Name then
+					local PlayerName = ""
+					if ESPEnv.NameMode == "Username" then
+						PlayerName = Player.Name
+					else
+						PlayerName = Player.DisplayName
+					end
+					Name.Text = PlayerName
+					Name.Position = Vector2.new(BoxSize.X / 2 + BoxPos.X, BoxPos.Y - 16)
+					Name.Color = ESPEnv.NameColor
+					Name.Font = Drawing.Fonts[ESPEnv.Font]
+					Name.Visible = true
+				end
+				if ESPEnv.Tool then
 					local EquippedTool = Player.Character:FindFirstChildOfClass("Tool")
 					local Name = EquippedTool and EquippedTool.Name or "None"
-					Name = SurroundString(Name, ESP.Surround)
 					Tool.Text = Name
-					Tool.Position = Vector2(BoxSize.X/2 + BoxPos.X, BottomOffset)
-					Tool.Color = ESP.IndicatorsColor
-					Tool.Font = Drawing.Fonts[ESP.Font]
+					Tool.Position = Vector2.new(BoxSize.X/2 + BoxPos.X, BottomOffset)
+					Tool.Color = ESPEnv.ToolColor
+					Tool.Font = Drawing.Fonts[ESPEnv.Font]
 					Tool.Visible = true
-					BottomOffset = BottomOffset + 15
+					BottomOffset += 15
 				end
-				
-				if ESP.Indicators.Distance then
-					Distance.Text = SurroundString(math.floor(DistanceFromCharacter).."m", ESP.Surround)
-					Distance.Position = Vector2(BoxSize.X/2 + BoxPos.X, BottomOffset)
-					Distance.Color = ESP.IndicatorsColor
-					Distance.Font = Drawing.Fonts[ESP.Font]
+				if ESPEnv.Distance then
+					Distance.Text = math.floor(DistanceFromCharacter).."m"
+					Distance.Position = Vector2.new(BoxSize.X/2 + BoxPos.X, BottomOffset)
+					Distance.Color = ESPEnv.DistanceColor
+					Distance.Font = Drawing.Fonts[ESPEnv.Font]
 					Distance.Visible = true
-
-					BottomOffset = BottomOffset + 15
+					BottomOffset += 15
+				end
+			end
+		end
+	end)
+	if WeaponmodelEnv.Enabled then
+		local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+		if Tool ~= nil then
+			for _, v in pairs(Tool:GetDescendants()) do
+				if v:IsA("SurfaceAppearance") then
+					v:Destroy()
+				elseif v:IsA("MeshPart") and v.TextureID ~= "" then
+					v.TextureID = ""
+				end
+				if v:IsA("BasePart") then
+					v.Color = WeaponmodelEnv.Color
+					v.Material = Enum.Material[WeaponmodelEnv.Material]
 				end
 			end
 		end
 	end
+	if AntiAimEnv.Enabled then
+		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") ~= nil then
+			local CameraRemote = ReplicatedStorage:FindFirstChild("CameraEvent")
+			local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
+			local Offsets
+			Jitter = not Jitter
+			if AntiAimEnv.Offset == "World" then
+				if Jitter then
+					Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter)), math.sin(math.rad(AntiAimEnv.Pitch + AntiAimEnv.PitchJitter)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter)))
+				else
+					Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw)), math.sin(math.rad(AntiAimEnv.Pitch)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw)))
+				end
+			elseif AntiAimEnv.Offset == "Camera" then
+				if Jitter then
+					Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter) + math.atan2(Camera.CFrame.LookVector.Z, Camera.CFrame.LookVector.X)), math.sin(math.rad(AntiAimEnv.Pitch + AntiAimEnv.PitchJitter)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter) - Camera.CFrame.RightVector.X))
+				else
+					Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw) + math.atan2(Camera.CFrame.LookVector.Z, Camera.CFrame.LookVector.X)), math.sin(math.rad(AntiAimEnv.Pitch)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw) - Camera.CFrame.RightVector.X))
+				end
+			end
+			local x, y, z = HumanoidRootPart.Position.X + Offsets.X, HumanoidRootPart.Position.Y + Offsets.Y, HumanoidRootPart.Position.Z + Offsets.Z
+			if CameraRemote ~= nil then
+				CameraRemote:FireServer(CFrame.new(x, y, z), 0, 0.01, true, CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1))
+			end
+		end
+	end
+	if LocalPlayerEnv.FastHeal and LocalPlayer.Character then
+		local HealthItem = LocalPlayer.Character:FindFirstChild("Medkit") or LocalPlayer.Character:FindFirstChild("Bandage")
+		if HealthItem ~= nil then
+			HealthItem.ActionMain:FireServer("heal", LocalPlayer.Character)
+		end
+	end
+	if LocalPlayerEnv.AutoSelfRevive and LocalPlayerEnv.AutoSelfReviveMode == "RenderStepped" and LocalPlayer.Character then
+		local Downed = LocalPlayer.Character:FindFirstChild("Downed")
+		local HealthItem = LocalPlayer.Backpack:FindFirstChild("Defibrillator") or LocalPlayer.Backpack:FindFirstChild("Medkit") or LocalPlayer.Backpack:FindFirstChild("Bandage")
+		if Downed ~= nil then
+			HealthItem.Parent = LocalPlayer.Character
+			HealthItem.ActionMain:FireServer("heal", LocalPlayer.Character)
+			HealthItem.Parent = LocalPlayer.Backpack
+		end
+	end
+	if HealAuraEnv.Enabled and LocalPlayer.Character then
+		local HealthItem = LocalPlayer.Character:FindFirstChild("Medkit") or LocalPlayer.Character:FindFirstChild("Bandage")
+		if HealthItem ~= nil then
+			task.spawn(function()
+				for _, v in pairs(Players:GetPlayers()) do
+					if v ~= LocalPlayer then
+						if (HealAuraEnv.Mode == "Blacklist" and HealAuraEnv.PlayerList[v.Name]) or (HealAuraEnv.Mode == "Whitelist" and not HealAuraEnv.PlayerList[v.Name]) then continue end
+						local Character = v.Character
+						local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+						local LocalRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+						if Character and RootPart ~= nil and LocalRootPart ~= nil then
+							local DistanceFromCharacter = (LocalRootPart.CFrame.Position - RootPart.CFrame.Position).Magnitude
+							if HealAuraEnv.Range < DistanceFromCharacter then continue end
+						else
+							continue
+						end
+						HealthItem.ActionMain:FireServer("heal", Character)
+					end
+				end
+			end)
+		end
+	end
+	FrameCounter += 1
+	if (tick() - FrameTimer) >= 1 then
+		FPS = FrameCounter
+		FrameTimer = tick()
+		FrameCounter = 0
+	end
+	Library:SetWatermark(string.format('Meonkify | %s FPS | %s ms | Place: %s', math.floor(FPS), math.floor(Stats.Network.ServerStatsItem['Data Ping']:GetValue()), MarketplaceService:GetProductInfo(game.PlaceId).Name))
+end)
+
+Connections.InputBeganConnection = UserInputService.InputBegan:Connect(function(Input)
+	if AimbotEnv.Enabled and ((Options.AimbotKeybind.Value == "MB1" and Input.UserInputType == Enum.UserInputType.MouseButton1) or (Options.AimbotKeybind.Value == "MB2" and Input.UserInputType == Enum.UserInputType.MouseButton2) or Input.KeyCode.Name == Options.AimbotKeybind.Value) then
+		AimbotEnv.KeyPressed = true             
+	end
+end)
+
+Connections.InputEndedConnection = UserInputService.InputEnded:Connect(function(Input)
+	if AimbotEnv.Enabled and ((Options.AimbotKeybind.Value == "MB1" and Input.UserInputType == Enum.UserInputType.MouseButton1) or (Options.AimbotKeybind.Value == "MB2" and Input.UserInputType == Enum.UserInputType.MouseButton2) or Input.KeyCode.Name == Options.AimbotKeybind.Value) then
+		AimbotEnv.KeyPressed = false
+		EndAimbot()
+	end
+end)
+
+if LocalPlayer.Character then
+	if Connections.CharacterChildAddedConnection ~= nil then
+		Connections.CharacterChildAddedConnection:Disconnect()
+		Connections.CharacterChildAddedConnection = nil
+	end	
+	Connections.CharacterChildAddedConnection = LocalPlayer.Character.ChildAdded:Connect(function(Child)
+		if LocalPlayerEnv.AutoSelfRevive and LocalPlayerEnv.AutoSelfReviveMode == "ChildAdded" and LocalPlayer:FindFirstChildOfClass("Backpack") ~= nil and Child.Name == "Downed" then
+			local HealthItem = LocalPlayer.Backpack:FindFirstChild("Defibrillator") or LocalPlayer.Backpack:FindFirstChild("Medkit") or LocalPlayer.Backpack:FindFirstChild("Bandage")
+			if HealthItem ~= nil then
+				while WaitForSomeone(RenderStepped) do
+					if LocalPlayerEnv.AutoSelfRevive and LocalPlayer.Character:FindFirstChild("Downed") ~= nil then
+						HealthItem.Parent = LocalPlayer.Character
+						HealthItem.ActionMain:FireServer("heal", LocalPlayer.Character)
+					else
+						break
+					end
+				end
+			end
+		end
+		if GunModsEnv.Enabled and Child:IsA("Tool") then
+			GunMods(Child)
+		end
+	end)
+end
+
+Connections.CharacterAddedConnection = LocalPlayer.CharacterAdded:Connect(function()
+	if Connections.CharacterChildAddedConnection ~= nil then
+		Connections.CharacterChildAddedConnection:Disconnect()
+		Connections.CharacterChildAddedConnection = nil
+	end	
+	Connections.CharacterChildAddedConnection = LocalPlayer.Character.ChildAdded:Connect(function(Child)
+		if LocalPlayerEnv.AutoSelfRevive and LocalPlayerEnv.AutoSelfReviveMode == "ChildAdded" and LocalPlayer:FindFirstChildOfClass("Backpack") ~= nil and Child.Name == "Downed" then
+			local HealthItem = LocalPlayer.Backpack:FindFirstChild("Defibrillator") or LocalPlayer.Backpack:FindFirstChild("Medkit") or LocalPlayer.Backpack:FindFirstChild("Bandage")
+			if HealthItem ~= nil then
+				while WaitForSomeone(RenderStepped) do
+					if LocalPlayerEnv.AutoSelfRevive and LocalPlayer.Character:FindFirstChild("Downed") ~= nil then
+						HealthItem.Parent = LocalPlayer.Character
+						HealthItem.ActionMain:FireServer("heal", LocalPlayer.Character)
+					else
+						break
+					end
+				end
+			end
+		end
+		if GunModsEnv.Enabled and Child:IsA("Tool") then
+			GunMods(Child)
+		end
 	end)
 end)
 
---Tabs
+function Meonkify:Exit()
+	for _, con in next, Connections do
+		con:Disconnect()
+		con = nil
+	end
+	for _, player in pairs(Players:GetPlayers()) do
+		if PlayerDrawings[player] then
+			for _, Drawing in pairs(PlayerDrawings[player]) do
+				Drawing:Remove()
+			end
+		end
+	end
+	Lighting.OutdoorAmbient = Olds.Ambient
+	AimbotEnv.FOVCircle:Remove()
+	SilentAimEnv.FOVCircle:Remove()
+	getgenv().Meonkify = nil
+end
+
+local Window = Library:CreateWindow({
+	Title = 'Meonkify',
+	Center = true,
+	AutoShow = true,
+	TabPadding = 8,
+	MenuFadeTime = 0.175
+})
+
 local Tabs = {
-	Aimbot = Window:AddTab('Aimbot'),
+	Combat = Window:AddTab('Combat'),
 	Visuals = Window:AddTab('Visuals'),
-	Player = Window:AddTab('Player'),
+	World = Window:AddTab('World'),
 	Misc = Window:AddTab('Misc'),
-	['UI Settings'] = Window:AddTab('UI Settings'),
+	Settings = Window:AddTab('Settings')
 }
 
---Groups
-
-local AimbotGroup = Tabs.Aimbot:AddLeftGroupbox('Aimbot Settings')
-local FOVGroup = Tabs.Aimbot:AddRightGroupbox('Fov Settings')
-local ChecksGroup = Tabs.Aimbot:AddLeftGroupbox('Checks')
-
-local PlayerESPGroup = Tabs.Visuals:AddLeftGroupbox('PlayerESP')
-local OutOfFOVESPGroup = Tabs.Visuals:AddRightGroupbox('Out Of Fov')
-local ViewModelGroup = Tabs.Visuals:AddRightGroupbox('ViewModel Changer')
-local WeaponGroup = Tabs.Visuals:AddLeftGroupbox('Weapon Models')
-local FOVChangerGroup = Tabs.Visuals:AddLeftGroupbox('FOV Changer')
-local LightingGroup = Tabs.Visuals:AddRightGroupbox('Lighting Modifications')
-
-local AntiAimGroup = Tabs.Player:AddRightGroupbox('Anti Aim')
-
-local WeaponModsGroup = Tabs.Misc:AddLeftGroupbox('Weapon Mods')
-local MiscGroup = Tabs.Misc:AddRightGroupbox('Misc')
-
-AimbotGroup:AddToggle('AimbotEnableToggle', {
-    Text = 'Enabled',
-    Default = getgenv().TAimbot.Settings.Enabled,
-    Tooltip = 'Enable/Disable Aimbot',
-
-    Callback = function(Value)
-        getgenv().TAimbot.Settings.Enabled = Value
-    end
-})
-
-AimbotGroup:AddToggle('AimbotToggle', {
-    Text = 'Toggle',
-    Default = getgenv().TAimbot.Settings.Toggle,
-    Tooltip = 'Toggles the aimbot instead of holding to use it',
-
-    Callback = function(Value)
-        getgenv().TAimbot.Settings.Toggle = Value
-    end
-})
-
-AimbotGroup:AddDropdown('TargetPart', {
-	Values = { 'Head', 'Torso', 'HumanoidRootPart', 'Left Arm', 'Right Arm', 'Left Leg', 'Right Leg' },
-	Default = getgenv().TAimbot.Settings.LockPart,
-	Multi = false,
-
-	Text = 'AimPart',
-	Tooltip = 'AimPart of Aimbot',
-
-	Callback = function(Value)
-		getgenv().TAimbot.Settings.LockPart = Value
-	end
-})
-
-AimbotGroup:AddSlider('Smoothness', {
-    Text = 'Smoothness',
-    Max = 1,
-    Default = getgenv().TAimbot.Settings.Sensitivity,
-    Min = 0,
-    Rounding = 3,
-
-    Callback = function(Value)
-        getgenv().TAimbot.Settings.Sensitivity = Value
-    end
-})
-
-ChecksGroup:AddToggle('WallCheck', {
-	Text = 'Wall Check',
-	Default = getgenv().TAimbot.Settings.WallCheck,
-	Tooltip = 'Will not aim on people behind walls if enabled (laggy)',
-
-	Callback = function(Value)
-		getgenv().TAimbot.Settings.WallCheck = Value
-	end
-})
-
-ChecksGroup:AddToggle('WallCheck', {
-	Text = 'Alive Check',
-	Default = getgenv().TAimbot.Settings.AliveCheck,
-	Tooltip = 'Will not aim on people that are not alive',
-
-	Callback = function(Value)
-		getgenv().TAimbot.Settings.AliveCheck = Value
-	end
-})
-
-FOVGroup:AddToggle('FOVToggle', {
-    Text = 'Enabled',
-    Default = getgenv().TAimbot.FOVSettings.Enabled,
-    Tooltip = 'Enable/Disable FOV circle',
-
-    Callback = function(Value)
-        getgenv().TAimbot.FOVSettings.Enabled = Value
-    end
-})
-
-FOVGroup:AddToggle('FOVVisible', {
-    Text = 'Visible',
-    Default = getgenv().TAimbot.FOVSettings.Visible,
-    Tooltip = 'Draws FoV',
-
-    Callback = function(Value)
-        getgenv().TAimbot.FOVSettings.Visible = Value
-    end
-})
-
-FOVGroup:AddToggle('FOVFilled', {
-    Text = 'Filled',
-    Default = getgenv().TAimbot.FOVSettings.Filled,
-    Tooltip = 'Fills the FoV',
-
-    Callback = function(Value)
-        getgenv().TAimbot.FOVSettings.Filled = Value
-    end
-})
-
-FOVGroup:AddLabel('FOV Color'):AddColorPicker('FovColor', {
-	Default = getgenv().TAimbot.FOVSettings.Color,
-	Title = 'FOV Color',
-	Transparency = nil,
-
-	Callback = function(Value)
-		getgenv().TAimbot.FOVSettings.Color = Value
-	end
-})
-
-FOVGroup:AddLabel('FOV Locked Color'):AddColorPicker('FovLockedColor', {
-	Default = getgenv().TAimbot.FOVSettings.LockedColor,
-	Title = 'FOV Locked Color',
-	Transparency = nil,
-
-	Callback = function(Value)
-		getgenv().TAimbot.FOVSettings.LockedColor = Value
-	end
-})
-
-FOVGroup:AddSlider('FoV', {
-    Text = 'FoV',
-    Max = 1000,
-    Default = getgenv().TAimbot.FOVSettings.Amount,
-    Min = 0,
-    Rounding = 0,
-
-    Callback = function(Value)
-        getgenv().TAimbot.FOVSettings.Amount = Value
-    end
-})
-
-FOVGroup:AddSlider('FoVSides', {
-    Text = 'Sides',
-    Max = 60,
-    Default = getgenv().TAimbot.FOVSettings.Sides,
-    Min = 0,
-    Rounding = 0,
-
-    Callback = function(Value)
-        getgenv().TAimbot.FOVSettings.Sides = Value
-    end
-})
-
-FOVGroup:AddSlider('FoVVisibility', {
-    Text = 'Visibility',
-    Max = 1,
-    Default = getgenv().TAimbot.FOVSettings.Transparency,
-    Min = 0,
-    Rounding = 3,
-
-    Callback = function(Value)
-        getgenv().TAimbot.FOVSettings.Transparency = Value
-    end
-})
-
-PlayerESPGroup:AddToggle('ESPEnable', {
-	Text = 'Enabled',
-	Default = false,
-	Tooltip = 'Enable/Disable player ESP',
-
-	Callback = function(Value)
-		getgenv().ESP.Enabled = Value
-	end
-})
-
-PlayerESPGroup:AddToggle('BoxESP', {
-	Text = 'Box ESP',
-	Default = false,
-	Tooltip = 'Draws box around players',
-
-	Callback = function(Value)
-		getgenv().ESP.Box = Value
-	end
-}):AddColorPicker('BoxESPColor', {
-	Default = Color3.new(1, 1, 1),
-	Title = 'Box ESP color',
-	Transparency = 0,
-
-	Callback = function(Value)
-		getgenv().ESP.BoxColor = Value
-	end
-})
-
-PlayerESPGroup:AddToggle('NameESP', {
-	Text = 'Name ESP',
-	Default = false,
-	Tooltip = 'Shows the username of the player',
-
-	Callback = function(Value)
-		getgenv().ESP.Name = Value
-	end
-}):AddColorPicker('NameESPColor', {
-	Default = Color3.new(1, 1, 1),
-	Title = 'Name ESP color',
-	Transparency = 0,
-
-	Callback = function(Value)
-		getgenv().ESP.NameColor = Value
-	end
-})
-
-PlayerESPGroup:AddToggle('Healthbar', {
-	Text = 'HealthBar',
-	Default = false,
-	Tooltip = 'Shows the health of the player',
-
-	Callback = function(Value)
-		getgenv().ESP.Health = Value
-	end
-}):AddColorPicker('HealthbarColor', {
-	Default = Color3.new(0, 1, 0),
-	Title = 'HealthBar Color',
-	Transparency = 0,
-
-	Callback = function(Value)
-		getgenv().ESP.HealthColor = Value
-	end
-})
-
-PlayerESPGroup:AddToggle('ToolsESP', {
-	Text = 'Tools',
-	Default = false,
-	Tooltip = 'Shows the tool of the player holding',
-
-	Callback = function(Value)
-		getgenv().ESP.Indicators["Tools"] = Value
-	end
-})
-
-PlayerESPGroup:AddToggle('DistanceESP', {
-	Text = 'Distance',
-	Default = false,
-	Tooltip = 'Shows the distance of the player',
-
-	Callback = function(Value)
-		getgenv().ESP.Indicators["Distance"] = Value
-	end
-})
-
-PlayerESPGroup:AddLabel('Indicators color'):AddColorPicker('IndicatorsColor', {
-	Default = Color3.new(1, 1, 1),
-	Title = 'Indicators Color',
-	Transparency = nil,
-
-	Callback = function(Value)
-		getgenv().ESP.IndicatorsColor = Value
-	end
-})
-
-PlayerESPGroup:AddToggle('PenisESP', {
-	Text = 'Penis',
-	Default = false,
-	Tooltip = 'Draw penis for everyone',
-
-	Callback = function(Value)
-		getgenv().ESP.Penis = Value
-	end
-}):AddColorPicker('PenisColor', {
-	Default = Color3.new(1, 1, 1),
-	Title = 'Penis Color',
-	Transparency = nil,
-
-	Callback = function(Value)
-		getgenv().ESP.PenisColor = Value
-	end
-})
-
-PlayerESPGroup:AddToggle('LookDirection', {
-	Text = 'Look Direction',
-	Default = false,
-	Tooltip = 'Shows where every player is looking towards',
-
-	Callback = function(Value)
-		getgenv().ESP.LookDir = Value
-	end
-}):AddColorPicker('LookDirColor', {
-	Default = Color3.new(1, 1, 1),
-	Title = 'Look Direction Color',
-	Transparency = nil,
-
-	Callback = function(Value)
-		getgenv().ESP.LookDirColor = Value
-	end
-})
-
-PlayerESPGroup:AddSlider('MaxESPDistance', {
-	Text = 'Max Distance',
-	Min = 100,
-	Default = 100000,
-	Max = 200000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		getgenv().ESP.MaxDistance = Value
-	end
-})
-
-PlayerESPGroup:AddDropdown('ESPUserType', {
-	Values = { 'Username', 'DisplayName' },
-	Default = 1,
-	Multi = false,
-
-	Text = 'Name ESP type',
-	Tooltip = 'Change the name ESP type',
-
-	Callback = function(Value)
-		getgenv().ESP.NameType = Value
-	end
-})
-
-PlayerESPGroup:AddDropdown('ESPTextSurround', {
-	Values = { 'none', '[]', '--', '<>' },
-	Default = 1,
-	Multi = false,
-
-	Text = 'Surround',
-	Tooltip = 'surrounds the indicators with the icons',
-
-	Callback = function(Value)
-		getgenv().ESP.Surround = Value
-	end
-})
-
-PlayerESPGroup:AddDropdown('ESPTextFont', {
-	Values = { 'Flex', 'UI', 'System', 'Monospace' },
-	Default = 1,
-	Multi = false,
-
-	Text = 'Text Font',
-	Tooltip = 'Changes the font of the Texts on the ESP',
-
-	Callback = function(Value)
-		getgenv().ESP.Font = Value
-	end
-})
-
-OutOfFOVESPGroup:AddToggle('OutOfFOVESPToggle', {
-	Text = 'Enabled',
-	Default = false,
-	Tooltip = 'Shows arrows to people outside of your screen',
-
-	Callback = function(Value)
-		getgenv().ESP.OutOfFoV.teammates = Value
-		getgenv().ESP.OutOfFoV.enemies = Value
-	end
-})
-
-OutOfFOVESPGroup:AddToggle('OFVOutline', {
-	Text = 'Outline',
-	Default = false,
-	Tooltip = 'honestly idk',
-
-	Callback = function(Value)
-		getgenv().ESP.OutOfFoV.settings.Combo.outline = Value
-	end
-})
-
-OutOfFOVESPGroup:AddToggle('OFVBlinking', {
-	Text = 'Blinking',
-	Default = true,
-	Tooltip = 'honestly idk',
-
-	Callback = function(Value)
-		getgenv().ESP.OutOfFoV.settings.Combo.blinking = Value
-	end
-})
-
-OutOfFOVESPGroup:AddSlider('OFVOffset', {
-	Text = 'Offset',
-	Max = 1000,
-	Min = 10,
-	Default = 400,
-	Rounding = 0,
-
-	Callback = function(Value)
-		getgenv().ESP.OutOfFoV.offset = Value
-	end
-})
-
-OutOfFOVESPGroup:AddSlider('OFVSize', {
-	Text = 'Size',
-	Max = 50,
-	Min = 0,
-	Default = 15,
-	Rounding = 0,
-
-	Callback = function(Value)
-		getgenv().ESP.OutOfFoV.size = Value
-	end
-})
-
-ViewModelGroup:AddToggle('VMToggle', {
-	Text = 'Enabled',
-	Default = false,
-	Tooltip = 'Enable/Disable ViewModel Changer',
-
-	Callback = function(Value)
-		VM = Value
-	end
-})
-
-ViewModelGroup:AddSlider('VMX', {
-	Text = 'Viewmodel offset X',
-	Max = 10,
-	Default = 1,
-	Min = -10,
-	Rounding = 3,
-
-	Callback = function(Value)
-		X = Value
-	end
-})
-
-ViewModelGroup:AddSlider('VMY', {
-	Text = 'Viewmodel offset Y',
-	Max = 10,
-	Default = 0,
-	Min = -10,
-	Rounding = 3,
-
-	Callback = function(Value)
-		Y = Value
-	end
-})
-
-ViewModelGroup:AddSlider('VMZ', {
-	Text = 'Viewmodel offset Z',
-	Max = 10,
-	Default = 0,
-	Min = -10,
-	Rounding = 3,
-
-	Callback = function(Value)
-		Z = Value
-	end
-})
-
-for _, Materials in ipairs(Enum.Material:GetEnumItems()) do
-    table.insert(Materials, Material.Name)
+local Groups = {
+	Aimbot = Tabs.Combat:AddLeftGroupbox('Aimbot'),
+	SilentAim = Tabs.Combat:AddRightGroupbox('Silent Aim'),
+	AntiAim = Tabs.Combat:AddLeftGroupbox('Anti Aim'),
+	GunMods = Tabs.Combat:AddRightGroupbox('Gun Mods'),
+
+	ESP = Tabs.Visuals:AddLeftGroupbox('ESP'),
+	Viewmodel = Tabs.Visuals:AddRightGroupbox('View Model'),
+	Weaponmodel = Tabs.Visuals:AddRightGroupbox('Weapon Model'),
+
+	LightingModifier = Tabs.World:AddLeftGroupbox('Lighting Modifier'),
+
+	PlayerUtilities = Tabs.Misc:AddLeftGroupbox('Player Utilities'),
+	PenisGun = Tabs.Misc:AddLeftGroupbox('Penis Gun'),
+	LocalPlayer = Tabs.Misc:AddRightGroupbox('LocalPlayer'),
+	HealAura = Tabs.Misc:AddRightGroupbox('Heal Aura'),
+
+	Menu = Tabs.Settings:AddLeftGroupbox('Menu')
+}
+
+Groups.Aimbot:AddToggle('AimbotEnabled', { Text = 'Enabled', Default = AimbotEnv.Enabled, Tooltip = 'Enable/Disable aimbot', Callback = function(vl) AimbotEnv.Enabled = vl if not vl then EndAimbot() end end}):AddKeyPicker('AimbotKeybind', { Default = 'MB2', SyncToggleState = false, Mode = 'Hold', Text = nil, NoUI = true })
+Groups.Aimbot:AddToggle('AimbotStickyAim', { Text = 'Sticky Aim', Default = AimbotEnv.StickyAim, Tooltip = 'Keep the target same until the target is out of\nFOV circle or the key is no longer being pressed', Callback = function(vl) AimbotEnv.StickyAim = vl end })
+Groups.Aimbot:AddSlider('AimbotRadius', { Text = 'Aimbot Radius', Max = 1000, Min = 30, Default = AimbotEnv.Radius, Rounding = 0, Callback = function(vl) AimbotEnv.Radius = vl end })
+Groups.Aimbot:AddSlider('AimbotSmoothness', { Text = 'Smoothness', Max = 1, Min = 0, Default = AimbotEnv.Smoothness, Rounding = 2, Callback = function(vl) AimbotEnv.Smoothness = vl end })
+Groups.Aimbot:AddDropdown('AimbotTargetPart', { Values = { "Head", "Torso", "HumanoidRootPart", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }, Default = AimbotEnv.TargetPart, Multi = false, Text = 'Target Part', Tooltip = 'Changes the part of the aimbot to lock on', Callback = function(vl) AimbotEnv.TargetPart = vl end })
+Groups.Aimbot:AddDivider()
+Groups.Aimbot:AddLabel('FOV Circle')
+Groups.Aimbot:AddToggle('AimbotFOVCircle', { Text = 'Visible', Default = AimbotEnv.FOV.Visible, Tooltip = 'Hide/Show the FOV circle', Callback = function(vl) AimbotEnv.FOV.Visible = vl end }):AddColorPicker('AimbotFOVCircleColor', { Default = AimbotEnv.FOV.Color, Title = 'FOV Circle Color', Transparency = nil, Callback = function(vl) AimbotEnv.FOV.Color = vl end })
+Groups.Aimbot:AddToggle('AimbotFOVColorChange', { Text = 'Change color on locked', Default = AimbotEnv.FOV.ChangeColor, Tooltip = 'Changes the Field of View circle color when locked', Callback = function(vl) AimbotEnv.FOV.ChangeColor = vl end }):AddColorPicker('AimbotFOVLockedColor', { Default = AimbotEnv.FOV.ChangedColor, Title = 'FOV Locked Color', Transparency = nil, Callback = function(vl) AimbotEnv.FOV.ChangedColor = vl end })
+Groups.Aimbot:AddDivider()
+Groups.Aimbot:AddLabel('Checks')
+Groups.Aimbot:AddToggle('AimbotAliveCheck', { Text = 'Alive Check', Default = AimbotEnv.Checks.AliveCheck, Tooltip = 'Checks if the player is alive or downed', Callback = function(vl) AimbotEnv.Checks.AliveCheck = vl end })
+Groups.Aimbot:AddToggle('AimbotVisibleCheck', { Text = 'Visible Check', Default = AimbotEnv.Checks.VisibleCheck, Tooltip = 'Checks if the player is visible', Callback = function(vl) AimbotEnv.Checks.VisibleCheck = vl end })
+Groups.Aimbot:AddToggle('AimbotForceFieldCheck', { Text = 'ForceField Check', Default = AimbotEnv.Checks.ForceFieldCheck, Tooltip = 'Checks if the player has ForceField', Callback = function(vl) AimbotEnv.Checks.ForceFieldCheck = vl end })
+
+if hookmetamethod then
+	Groups.SilentAim:AddToggle('SilentAimEnabled', { Text = 'Enabled', Default = SilentAimEnv.Enabled, Tooltip = 'Enable/Disable silent aim', Callback = function(vl) SilentAimEnv.Enabled = vl end })
+	Groups.SilentAim:AddSlider('SilentAimRadius', { Text = 'Silent Aim Radius', Max = 1000, Min = 30, Default = SilentAimEnv.Radius, Rounding = 0, Callback = function(vl) SilentAimEnv.Radius = vl end })
+	Groups.SilentAim:AddDropdown('SilentAimTargetPart', { Values = { "Head", "Torso", "HumanoidRootPart", "Left Arm", "Right Arm", "Left Leg", "Right Leg" }, Default = SilentAimEnv.TargetPart, Multi = false, Text = 'TargetPart', Tooltip = 'Changes the part of the part the silent aim will hit', Callback = function(vl) SilentAimEnv.TargetPart = vl end })
+	Groups.SilentAim:AddDivider()
+	Groups.SilentAim:AddLabel('FOV Circle')
+	Groups.SilentAim:AddToggle('SilentAimFOVCircle', { Text = 'Visible', Default = SilentAimEnv.FOV.Visible, Tooltip = 'Hide/Show the FOV circle', Callback = function(vl) SilentAimEnv.FOV.Visible = vl end }):AddColorPicker('SilentAimFOVCircleColor', { Default = SilentAimEnv.FOV.Color, Title = 'FOV Circle Color', Transparency = nil, Callback = function(vl) SilentAimEnv.FOV.Color = vl end })
+	Groups.SilentAim:AddDivider()
+	Groups.SilentAim:AddLabel('Checks')
+	Groups.SilentAim:AddToggle('SilentAimAliveCheck', { Text = 'Alive Check', Default = SilentAimEnv.Checks.AliveCheck, Tooltip = 'Checks if the player is alive and not downed', Callback = function(vl) SilentAimEnv.Checks.AliveCheck = vl end })
+	Groups.SilentAim:AddToggle('SilentAimVisibleCheck', { Text = 'Visible Check', Default = SilentAimEnv.Checks.VisibleCheck, Tooltip = 'Checks if the player is visible', Callback = function(vl) SilentAimEnv.Checks.VisibleCheck = vl end })
+	Groups.SilentAim:AddToggle('SilentAimForceFieldCheck', { Text = 'ForceField Check', Default = SilentAimEnv.Checks.ForceFieldCheck, Tooltip = 'Checks if the player has ForceField', Callback = function(vl) SilentAimEnv.Checks.ForceFieldCheck = vl end })
+else
+	Groups.SilentAim:AddLabel('Your current executor does not support the function "hookmetamethod". Because of that, silent aim features are hidden.', true)
 end
 
-WeaponGroup:AddToggle('WeaponModelToggle', {
-	Text = 'Enabled',
-	Default = false,
-	Tooltip = 'Enable/Disable weapon model edit',
-
-	Callback = function(Value)
-		MM = Value
-	end
-})
-
-WeaponGroup:AddDropdown('WeaponMaterial', {
-	Values = Materials,
-	Default = 1,
-	Multi = false,
-
-	Text = 'Material',
-	Tooltip = 'The material of the weapon',
-
-	Callback = function(Value)
-		Material = Value
-	end
-})
-
-WeaponGroup:AddLabel('MaterialColor'):AddColorPicker('WeaponMaterialColor', {
-	Default = Color3.new(1, 1, 1),
-	Title = 'Material Color',
-	Transparency = 0,
-
-	Callback = function(Value)
-		MaterialColor = Value
-	end
-})
-
-FOVChangerGroup:AddToggle('FOVChangerEnabled', {
-	Text = 'Enabled',
-	Default = false,
-	Tooltip = 'Changes the camera Field Of View',
-
-	Callback = function(Value)
-		FC = Value
-	end
-})
-
-FOVChangerGroup:AddSlider('FOVCS', {
-	Text = 'FOV Value',
-	Max = 120,
-	Min = 30,
-	Default = 70,
-	Rounding = 1,
-
-	Callback = function(Value)
-		FCV = Value
-	end
-})
-
-LightingGroup:AddToggle('LightingToggle', {
-	Text = 'Enabled',
-	Default = false,
-	Tooltip = 'Enable/Disable lighting modifications',
-
-	Callback = function(Value)
-		LightingEnabled = Value
-	end
-})
-
-LightingGroup:AddToggle('LShadowsToggle', {
-	Text = 'Shadows',
-	Default = false,
-	Tooltip = 'Enable/Disable Shadows',
-
-	Callback = function(Value)
-		GS = Value
-	end
-})
-
-LightingGroup:AddButton({
-	Text = 'No fog',
-	Func = function()
-		Lighting.FogEnd = 100000
-		for i,v in pairs(Lighting:GetDescendants()) do
-			if v:IsA("Atmosphere") then
-				v:Destroy()
-			end
-		end
-	end,
-	Tooltip = 'Removes fog',
-	DoubleClick = false
-})
-
-LightingGroup:AddSlider('LTime', {
-	Text = 'Time',
-	Max = 24,
-	Default = 14,
-	Min = 0,
-	Rounding = 1,
-
-	Callback = function(Value)
-		CT = Value
-	end
-})
-
-LightingGroup:AddSlider('LBrightness', {
-	Text = 'Brightness',
-	Max = 10,
-	Default = 2,
-	Min = 0,
-	Rounding = 2,
-
-	Callback = function(Value)
-		BrightnessValue = Value
-	end
-})
-
-LightingGroup:AddLabel('Ambient Color'):AddColorPicker('LAmbientColor', {
-	Default = Color3.new(0.502, 0.502, 0.502),
-	Title = 'Ambient Color',
-	Transparency = nil,
-
-	Callback = function(Value)
-		AmbientColor = Value
-	end
-})
-
-AntiAimGroup:AddToggle('AntiAimToggle', {
-	Text = 'Enabled',
-	Default = false,
-	Tooltip = 'Enable/Disable anti aim',
-
-	Callback = function(Value)
-		AntiAim.Enabled = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimPositionX', {
-	Text = 'CFrame Position X',
-	Max = 50000,
-	Default = 0,
-	Min = -50000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.PX = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimPositionY', {
-	Text = 'CFrame Position Y',
-	Max = 50000,
-	Default = 0,
-	Min = -50000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.PY = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimPositionZ', {
-	Text = 'CFrame Position Z',
-	Max = 50000,
-	Default = 0,
-	Min = -50000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.PZ = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimRightVectorX', {
-	Text = 'CFrame RightVector X',
-	Max = 10000,
-	Default = 0,
-	Min = -10000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.RVX = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimRightVectorY', {
-	Text = 'CFrame RightVector Y',
-	Max = 10000,
-	Default = 0,
-	Min = -10000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.RVY = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimRightVectorZ', {
-	Text = 'CFrame RightVector Z',
-	Max = 10000,
-	Default = 0,
-	Min = -10000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.RVZ = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimUpVectorX', {
-	Text = 'CFrame UpVector X',
-	Max = 10000,
-	Default = 0,
-	Min = -10000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.UVX = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimUpVectorY', {
-	Text = 'CFrame UpVector Y',
-	Max = 10000,
-	Default = 0,
-	Min = -10000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.UVY = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimUpVectorZ', {
-	Text = 'CFrame UpVector Z',
-	Max = 10000,
-	Default = 0,
-	Min = -10000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.UVZ = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimLookVectorX', {
-	Text = 'CFrame LookVector X',
-	Max = 10000,
-	Default = 0,
-	Min = -10000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.LVX = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimLookVectorY', {
-	Text = 'CFrame LookVector Y',
-	Max = 10000,
-	Default = 0,
-	Min = -10000,
-	Rounding = 0,
-
-	Callback = function(Value)
-		AntiAim.LVY = Value
-	end
-})
-
-AntiAimGroup:AddSlider('AntiAimLookVectorZ', {
-	Text = 'CFrame LookVector Z',
-	Max = 10000,
-	Default = 0,
-	Min = -10000,
-	Rounding = 0,
-	
-	Callback = function(Value)
-		AntiAim.LVZ = Value
-	end
-})
-
-WeaponModsGroup:AddToggle('WeaponModsEnabled', {
-	Text = 'Enabled',
-	Default = false,
-	Tooltip = 'Enable/Disable weapon mods',
-
-	Callback = function(Value)
-		WeaponMods.Enabled = Value
-	end
-})
-
-WeaponModsGroup:AddDivider()
-
-WeaponModsGroup:AddToggle('WeaponModsRecoil', {
-	Text = 'Recoil',
-	Default = false,
-	Tooltip = 'Change the recoil of the weapons',
-
-	Callback = function(Value)
-		WeaponMods.RE = Value
-	end
-})
-
-WeaponModsGroup:AddSlider('WeaponModsRecoilValue', {
-	Text = 'Recoil Value',
-	Max = 3,
-	Min = 0,
-	Default = 0,
-	Rounding = 2,
-
-	Callback = function(Value)
-		WeaponMods.R = Value
-	end
-})
-
-WeaponModsGroup:AddDivider()
-
-WeaponModsGroup:AddToggle('WeaponModsAimTime', {
-	Text = 'Aim Time',
-	Default = false,
-	Tooltip = 'Change the time of aiming in',
-
-	Callback = function(Value)
-		WeaponMods.ATE = Value
-	end
-})
-
-WeaponModsGroup:AddSlider('WeaponModsAimTimeValue', {
-	Text = 'Aim Time Value',
-	Max = 1,
-	Min = 0,
-	Default = 0,
-	Rounding = 2,
-
-	Callback = function(Value)
-		WeaponMods.AT = Value
-	end
-})
-
-WeaponModsGroup:AddDivider()
-
-WeaponModsGroup:AddToggle('WeaponModsFireRate', {
-	Text = 'Fire Rate',
-	Default = false,
-	Tooltip = 'Change the weapon firerate (lower = faster)',
-
-	Callback = function(Value)
-		WeaponMods.FRE = Value
-	end
-})
-
-WeaponModsGroup:AddSlider('WeaponModsFireRateValue', {
-	Text = 'Fire Rate Value',
-	Max = 1,
-	Min = 0,
-	Default = 0,
-	Rounding = 2,
-
-	Callback = function(Value)
-		WeaponMods.FR = Value
-	end
-})
-
-WeaponModsGroup:AddDivider()
-
-WeaponModsGroup:AddToggle('WeaponModsReloadTime', {
-	Text = 'Reload Time',
-	Default = false,
-	Tooltip = 'Change the weapon reload time',
-
-	Callback = function(Value)
-		WeaponMods.RTE = Value
-	end
-})
-
-WeaponModsGroup:AddSlider('WeaponModsReloadTimeValue', {
-	Text = 'Reload Time Value',
-	Max = 1,
-	Min = 0.0001,
-	Default = 0,
-	Rounding = 4,
-
-	Callback = function(Value)
-		WeaponMods.RT = Value
-	end
-})
-
-WeaponModsGroup:AddDivider()
-
-WeaponModsGroup:AddToggle('WeaponModsAimMulti', {
-	Text = 'Aim Zoom Multiplier',
-	Default = false,
-	Tooltip = 'Change the weapon reload time',
-
-	Callback = function(Value)
-		WeaponMods.AZME = Value
-	end
-})
-
-WeaponModsGroup:AddSlider('WeaponModsAimMultiValue', {
-	Text = 'Aim Zoom Multiplier Value',
-	Max = 1,
-	Min = 0.0001,
-	Default = 0,
-	Rounding = 4,
-
-	Callback = function(Value)
-		WeaponMods.AZM = Value
-	end
-})
-
-WeaponModsGroup:AddDivider()
-
-WeaponModsGroup:AddLabel('Put just 1 attachment for')
-WeaponModsGroup:AddLabel('it to work')
-
-MiscGroup:AddToggle('NoAmbientNoise', {
-	Text = 'No Ambient Noise',
-	Default = false,
-	Tooltip = 'Mutes/Unmutes the ambient noise',
-
-	Callback = function(Value)
-		if Value == true then
-			
-		end
-	end
-})
-
-function WeaponMods(weapon)
-	for _, children in ipairs(weapon.AttachmentFolder:GetChildren()) do
-		if children:IsA("Tool") then
-			local modfolder = children:FindFirstChild("Stats")
-
-			if modfolder ~= nil then
-				if WeaponMods.RE == true then
-					if modfolder:FindFirstChild("GunRecoil") then
-						modfolder.GunRecoil:Destroy()
-					end
-					if modfolder:FindFirstChild("GunRecoilX") then
-						modfolder.GunRecoilX:Destroy()
-					end	
-					wait(0.01)
-					local customrecoil = Instance.new("NumberValue", modfolder)
-					customrecoil.Value = WeaponMods.R
-					customrecoil.Name = "GunRecoil"
-					local customrecoilX = Instance.new("NumberValue", modfolder)
-					customrecoilX.Value = WeaponMods.R
-					customrecoilX.Name = "GunRecoilX"
-					Options.WeaponModsRecoilValue:OnChanged(function()
-						customrecoil.Value = WeaponMods.R
-						customrecoilX.Value = WeaponMods.R
-					end)
-				end
-				if WeaponMods.ATE == true then
-					if modfolder:FindFirstChild("AimTime") then
-						modfolder.AimTime:Destroy()
-					end
-					wait(0.01)
-					local customaimtime = Instance.new("NumberValue", modfolder)
-					customaimtime.Value = WeaponMods.AT
-					customaimtime.Name = "AimTime"
-					Options.WeaponModsAimTimeValue:OnChanged(function()
-						customaimtime.Value = WeaponMods.AT
-					end)
-				end
-				if WeaponMods.FRE == true then
-					if modfolder:FindFirstChild("waittime") then
-						modfolder.waittime:Destroy()
-					end
-					wait(0.01)
-					local customfirerate = Instance.new("NumberValue", modfolder)
-					customfirerate.Value = WeaponMods.FR
-					customfirerate.Name = "waittime"
-					Options.WeaponModsFireRateValue:OnChanged(function()
-						customfirerate.Value = WeaponMods.FR
-					end)
-				end
-				if WeaponMods.RTE == true then
-					if modfolder:FindFirstChild("ReloadSpeed") then
-						modfolder.ReloadSpeed:Destroy()
-					end
-					wait(0.01)
-					local customreloadtime = Instance.new("NumberValue", modfolder)
-					customreloadtime.Value = WeaponMods.RT
-					customreloadtime.Name = "ReloadSpeed"
-					Options.WeaponModsReloadTimeValue:OnChanged(function()
-						customreloadtime.Value = WeaponMods.RT
-					end)
-				end
-			end
-		end
-	end
-end
-
-if LocalPlayer.Character then
-	LocalPlayer.Character.ChildAdded:Connect(function(tool)
-		if tool:IsA("Tool") then
-			if WeaponMods.Enabled == true then
-				WeaponMods(tool)
-				Options.WeaponModsRecoilValue:OnChanged(function()
-					WeaponMods(tool)
-				end)
-				Options.WeaponModsAimTimeValue:OnChanged(function()
-					WeaponMods(tool)
-				end)
-				Options.WeaponModsFireRateValue:OnChanged(function()
-					WeaponMods(tool)
-				end)
-				Options.WeaponModsReloadTimeValue:OnChanged(function()
-					WeaponMods(tool)
-				end)
-			end
-		end
-	end)
-end
-
-LocalPlayer.CharacterAdded:Connect(function()
-	if LocalPlayer.Character then
-		LocalPlayer.Character.ChildAdded:Connect(function(tool)
-			if tool:IsA("Tool") then
-				if WeaponMods.Enabled == true then
-					WeaponMods(tool)
-					Options.WeaponModsRecoilValue:OnChanged(function()
-						WeaponMods(tool)
-					end)
-					Options.WeaponModsAimTimeValue:OnChanged(function()
-						WeaponMods(tool)
-					end)
-					Options.WeaponModsFireRateValue:OnChanged(function()
-						WeaponMods(tool)
-					end)
-					Options.WeaponModsReloadTimeValue:OnChanged(function()
-						WeaponMods(tool)
-					end)
-				end
-			end
-		end)
-	end
-end)
-
-if LocalPlayer.Character then
-    LocalPlayer.Character.ChildAdded:Connect(function(child)
-        if VM == true then
-            if child:IsA("Tool") then
-                child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-                Options.VMX:OnChanged(function()
-                    child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-                end)
-                Options.VMY:OnChanged(function()
-                    child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-                end)
-                Options.VMZ:OnChanged(function()
-                    child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-                end)
-            end
-        end
-    end)
-end
-
-LocalPlayer.CharacterAdded:Connect(function()
-	if LocalPlayer.Character then
-		LocalPlayer.Character.ChildAdded:Connect(function(child)
-			if VM == true then
-				if child:IsA("Tool") then
-					child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-					Options.VMX:OnChanged(function()
-						child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-					end)
-					Options.VMY:OnChanged(function()
-						child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-					end)
-					Options.VMZ:OnChanged(function()
-						child.ViewModelOffset.Value = Vector3.new(X, Y, Z)
-					end)
-				end
-			end
-		end)
-	end
-end)
-
-function WeaponModel(weapon)
-	for _, descendant in ipairs(weapon:GetDescendants()) do
-		if descendant:IsA("SurfaceAppearance") then
-			descendant:Destroy()
-		elseif descendant:IsA("MeshPart") and descendant.TextureID ~= "" then
-			descendant.TextureID = ""
-		end
-		if descendant:IsA("MeshPart") or descendant:IsA("Part") then
-			descendant.Material = Material
-			descendant.Color = MaterialColor
-		end
-	end
-end
-
-if LocalPlayer.Character then
-	LocalPlayer.Character.ChildAdded:Connect(function(tool)
-		if MM == true then
-			if tool:IsA("Tool") then
-				WeaponModel(tool)
-			end
-		end
-	end)
-end
-
-LocalPlayer.CharacterAdded:Connect(function()
-	if LocalPlayer.Character then
-		LocalPlayer.Character.ChildAdded:Connect(function(tool)
-			if MM == true then
-				if tool:IsA("Tool") then
-					WeaponModel(tool)
-				end
-			end
-		end)
-	end
-end)
-
-local LoopConnections = RunService.RenderStepped:Connect(function()
-	if AntiAim.Enabled == true then					
-		game:GetService("ReplicatedStorage"):WaitForChild("CameraEvent"):FireServer({CFrame.new(AntiAim.PX, AntiAim.PY, AntiAim.PZ, AntiAim.RVX, AntiAim.RVY, AntiAim.RVZ, AntiAim.UVX, AntiAim.UVY, AntiAim.UVZ, AntiAim.LVX, AntiAim.LVY, AntiAim.LVZ), 0, 0.01, true, CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1) })
-	end
-	if LightingEnabled == true then
-		Lighting.Brightness = BrightnessValue
-		Lighting.ClockTime = CT
-		Lighting.GlobalShadows = Shadows
-		Lighting.OutdoorAmbient = AmbientColor
-	end
-	if FC == true then
-		Camera.FieldOfView = FCV
-	end
-end)
-
-Library:SetWatermarkVisibility(true)
-
-local FrameTimer = tick()
-local FrameCounter = 0;
-local FPS = 60;
-
-local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(function()
-    FrameCounter += 1;
-
-    if (tick() - FrameTimer) >= 1 then
-        FPS = FrameCounter;
-        FrameTimer = tick();
-        FrameCounter = 0;
-    end;
-
-    Library:SetWatermark(('Meonkify | %s fps | %s ms | Game: %s'):format(
-        math.floor(FPS),
-        math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue()),
-		math.floor(game.PlaceId.Name)
-    ));
-end);
-
---UI Settings not recommended to touch if you aint gonna destroy drawings with unload
+Groups.AntiAim:AddToggle('AntiAimEnabled', { Text = 'Enabled', Default = AntiAimEnv.Enabled, Tooltip = 'Enable/Disable anti aim', Callback = function(vl) AntiAimEnv.Enabled = vl end })
+Groups.AntiAim:AddSlider('AntiAimYaw', { Text = 'Yaw', Max = 180, Min = -180, Default = AntiAimEnv.Yaw, Rounding = 0, Callback = function(vl) AntiAimEnv.Yaw = vl end })
+Groups.AntiAim:AddSlider('AntiAimYawJitter', { Text = 'Yaw Jitter', Max = 180, Min = -180, Default = AntiAimEnv.YawJitter, Rounding = 0, Callback = function(vl) AntiAimEnv.YawJitter = vl end })
+Groups.AntiAim:AddSlider('AntiAimPitch', { Text = 'Pitch', Max = 90, Min = -90, Default = AntiAimEnv.Pitch, Rounding = 0, Callback = function(vl) AntiAimEnv.Pitch = vl end })
+Groups.AntiAim:AddSlider('AntiAimPitchJitter', { Text = 'Pitch Jitter', Max = 180, Min = -180, Default = AntiAimEnv.PitchJitter, Rounding = 0, Callback = function(vl) AntiAimEnv.PitchJitter = vl end })
+Groups.AntiAim:AddDropdown('AntiAimYawOffsetMode', { Values = {'World', 'Camera'}, Default = AntiAimEnv.Offset, Multi = false, Text = 'Yaw Offset Mode', Tooltip = 'Changes the offset mode of the anti aim', Callback = function(vl) AntiAimEnv.Offset = vl end })
+
+Groups.GunMods:AddToggle('GunModsEnabled', { Text = 'Enabled', Default = GunModsEnv.Enabled, Tooltip = 'Enable/Disable gun mods', Callback = function(vl) GunModsEnv.Enabled = vl end })
+Groups.GunMods:AddDropdown('GunModsMode', { Values = { "require", "Attachments" }, Default = GunModsEnv.Mode, Multi = false, Text = 'Mode', Tooltip = 'Changes the mode of gun mods', Callback = function(vl) GunModsEnv.Mode = vl end })
+Groups.GunMods:AddDivider()
+Groups.GunMods:AddLabel('Recoil')
+Groups.GunMods:AddToggle('GunModsRecoilEnabled', { Text = 'Enabled', Default = GunModsEnv.Recoil.Enabled, Tooltip = 'Changes the recoil of your weapon', Callback = function(vl) GunModsEnv.Recoil.Enabled = vl if GunModsEnv.Enabled and vl and LocalPlayer.Character then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if Tool ~= nil then GunMods(Tool) end end end })
+Groups.GunMods:AddSlider('GunModsRecoil', { Text = 'Value', Max = 10, Min = 0, Default = GunModsEnv.Recoil.Value, Rounding = 2, Callback = function(vl) GunModsEnv.Recoil.Value = vl if GunModsEnv.Enabled and GunModsEnv.Recoil.Enabled and LocalPlayer.Character then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if Tool ~= nil then GunMods(Tool) end end end })
+Groups.GunMods:AddDivider()
+Groups.GunMods:AddLabel('Aim Field Of View')
+Groups.GunMods:AddToggle('GunModsAimFOVEnabled', { Text = 'Enabled', Default = GunModsEnv.AimFOV.Enabled, Tooltip = 'Changes the aim FOV when you aim in with your weapon', Callback = function(vl) GunModsEnv.AimFOV.Enabled = vl if GunModsEnv.Enabled and vl and LocalPlayer.Character then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if Tool ~= nil then GunMods(Tool) end end end })
+Groups.GunMods:AddSlider('GunModsAimFOV', { Text = 'Value', Max = 120, Min = 0, Default = GunModsEnv.AimFOV.Value, Rounding = 2, Callback = function(vl) GunModsEnv.AimFOV.Value = vl if GunModsEnv.Enabled and GunModsEnv.AimFOV.Enabled and LocalPlayer.Character then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if Tool ~= nil then GunMods(Tool) end end end })
+Groups.GunMods:AddDivider()
+Groups.GunMods:AddLabel('Reload Time')
+Groups.GunMods:AddToggle('GunModsReloadTimeEnabled', { Text = 'Enabled', Default = GunModsEnv.ReloadTime.Enabled, Tooltip = 'Changes the reload time of your weapon', Callback = function(vl) GunModsEnv.ReloadTime.Enabled = vl if GunModsEnv.Enabled and vl and LocalPlayer.Character then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if Tool ~= nil then GunMods(Tool) end end end })
+Groups.GunMods:AddSlider('GunModsReloadTime', { Text = 'Value', Max = 10, Min = 0.0001, Default = GunModsEnv.ReloadTime.Value, Rounding = 4, Callback = function(vl) GunModsEnv.ReloadTime.Value = vl if GunModsEnv.Enabled and GunModsEnv.ReloadTime.Enabled and LocalPlayer.Character then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if Tool ~= nil then GunMods(Tool) end end end })
+Groups.GunMods:AddDivider()
+Groups.GunMods:AddLabel('Fire Rate')
+Groups.GunMods:AddToggle('GunModsFireRateEnabled', { Text = 'Enabled', Default = GunModsEnv.FireRate.Enabled, Tooltip = 'Changes the fire rate of your weapon', Callback = function(vl) GunModsEnv.FireRate.Enabled = vl if GunModsEnv.Enabled and vl and LocalPlayer.Character then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if Tool ~= nil then GunMods(Tool) end end end })
+Groups.GunMods:AddSlider('GunModsFireRate', { Text = 'Value', Max = 10, Min = 0, Default = GunModsEnv.FireRate.Value, Rounding = 2, Callback = function(vl) GunModsEnv.FireRate.Value = vl if GunModsEnv.Enabled and GunModsEnv.FireRate.Enabled and LocalPlayer.Character then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if Tool ~= nil then GunMods(Tool) end end end })
+Groups.GunMods:AddDivider()
+Groups.GunMods:AddLabel('Aim Time')
+Groups.GunMods:AddToggle('GunModsAimTimeEnabled', { Text = 'Enabled', Default = GunModsEnv.AimTime.Enabled, Tooltip = 'Changes the aim time of your weapon', Callback = function(vl) GunModsEnv.AimTime.Enabled = vl if GunModsEnv.Enabled and vl and LocalPlayer.Character then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if Tool ~= nil then GunMods(Tool) end end end })
+Groups.GunMods:AddSlider('GunModsAimTime', { Text = 'Value', Max = 10, Min = 0, Default = GunModsEnv.AimTime.Value, Rounding = 2, Callback = function(vl) GunModsEnv.AimTime.Value = vl if GunModsEnv.Enabled and GunModsEnv.AimTime.Enabled and LocalPlayer.Character then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if Tool ~= nil then GunMods(Tool) end end end })
+Groups.GunMods:AddDivider()
+Groups.GunMods:AddLabel('Install Kill')
+Groups.GunMods:AddToggle('GunModsInstallKill', { Text = 'Enabled', Default = false, Tooltip = 'Installs your kills 🤖🤖 (Fatality.cb moment)', Callback = function(vl) if vl then Library:Notify("Installing your kills 🤖🤖 (this shit aint doing anything bru 💔💔)") end end })
+
+Groups.ESP:AddToggle('ESPEnabled', { Text = 'Enabled', Default = ESPEnv.Enabled, Tooltip = 'Enable/Disable ESP', Callback = function(vl) ESPEnv.Enabled = vl end })
+Groups.ESP:AddToggle('ESPBox', { Text = 'Box', Default = ESPEnv.Box, Tooltip = 'Draws boxes on players', Callback = function(vl) ESPEnv.Box = vl end }):AddColorPicker('ESPBoxColor', { Default = ESPEnv.BoxColor, Title = 'ESP Box Color', Transparency = nil, Callback = function(vl) ESPEnv.BoxColor = vl end })
+Groups.ESP:AddToggle('ESPName', { Text = 'Name', Default = ESPEnv.Name, Tooltip = 'Draws names on players', Callback = function(vl) ESPEnv.Name = vl end }):AddColorPicker('ESPNameColor', { Default = ESPEnv.NameColor, Title = 'ESP Name Color', Transparency = nil, Callback = function(vl) ESPEnv.NameColor = vl end })
+Groups.ESP:AddToggle('ESPHealthBar', { Text = 'Health Bar', Default = ESPEnv.HealthBar, Tooltip = 'Draws health bars on players', Callback = function(vl) ESPEnv.HealthBar = vl end }):AddColorPicker('ESPHealthBarColor', { Default = ESPEnv.HealthBarColor, Title = 'ESP Health Bar Color', Transparency = nil, Callback = function(vl) ESPEnv.HealthBarColor = vl end })
+Groups.ESP:AddToggle('ESPTool', { Text = 'Tool', Default = ESPEnv.Tool, Tooltip = 'Draws the equipped tool on players', Callback = function(vl) ESPEnv.Tool = vl end }):AddColorPicker('ESPToolColor', { Default = ESPEnv.ToolColor, Title = 'ESP Tool Color', Transparency = nil, Callback = function(vl) ESPEnv.ToolColor = vl end })
+Groups.ESP:AddToggle('ESPDistance', { Text = 'Distance', Default = ESPEnv.Distance, Tooltip = 'Draws the distance between your character and the player', Callback = function(vl) ESPEnv.Distance  = vl end }):AddColorPicker('ESPDistanceColor', { Default = ESPEnv.DistanceColor, Title = 'ESP Distance Color', Transparency = nil, Callback = function(vl) ESPEnv.DistanceColor = vl end })
+Groups.ESP:AddDropdown('ESPNameMode', { Values = { "Username", "Display Name" }, Default = ESPEnv.NameMode, Multi = false, Text = 'Name Mode', Tooltip = 'Changes the name mode', Callback = function(vl) ESPEnv.NameMode = vl end })
+Groups.ESP:AddDropdown('ESPFont', { Values = { "Plex", "Monospace", "System", "UI" }, Default = ESPEnv.Font, Multi = false, Text = 'Font', Tooltip = 'Changes the text font', Callback = function(vl) ESPEnv.Font = vl end })
+Groups.ESP:AddSlider('ESPDistance', { Text = 'Max Distance', Max = 100000, Min = 0, Default = ESPEnv.MaxDistance, Rounding = 0, Callback = function(vl) ESPEnv.MaxDistance = vl end })
+
+Groups.Viewmodel:AddToggle('ViewmodelEnabled', { Text = 'Enabled', Default = ViewModelEnv.Enabled, Tooltip = 'Enable/Disable viewmodel changer', Callback = function(vl) ViewModelEnv.Enabled = vl end })
+Groups.Viewmodel:AddSlider('ViewmodelX', { Text = 'X Offset', Max = 10, Min = -10, Default = ViewModelEnv.XOffset, Rounding = 1, Callback = function(vl) ViewModelEnv.XOffset = vl end })
+Groups.Viewmodel:AddSlider('ViewmodelY', { Text = 'Y Offset', Max = 10, Min = -10, Default = ViewModelEnv.YOffset, Rounding = 1, Callback = function(vl) ViewModelEnv.YOffset = vl end })
+Groups.Viewmodel:AddSlider('ViewmodelX', { Text = 'Z Offset', Max = 10, Min = -10, Default = ViewModelEnv.ZOffset, Rounding = 1, Callback = function(vl) ViewModelEnv.ZOffset = vl end })
+
+Groups.Weaponmodel:AddToggle('WeaponmodelEnabled', { Text = 'Enabled', Default = WeaponmodelEnv.Enabled, Tooltip = 'Changes your weapon model', Callback = function(vl) WeaponmodelEnv.Enabled = vl end }):AddColorPicker('WeaponmodelColor', { Default = WeaponmodelEnv.Color, Title = 'Weapon Color', Transparency = nil, Callback = function(vl) WeaponmodelEnv.Color = vl end })
+Groups.Weaponmodel:AddDropdown('WeaponmodelMaterial', { Values = { "Asphalt", "Basalt", "Brick", "Cardboard", "Carpet", "CeramicTiles", "ClayRoofTiles", "Cobblestone", "Concrete", "CorrodedMetal", "CrackedLava", "DiamondPlate", "Fabric", "Foil", "ForceField", "Glacier", "Glass", "Granite", "Grass", "Ground", "Ice", "LeafyGrass", "Leather", "Limestone", "Marble", "Metal", "Mud", "Neon", "Pavement", "Pebble", "Plaster", "Plastic", "Rock", "RoofShingles", "Rubber", "Salt", "Sand", "Sandstone", "Slate", "SmoothPlastic", "Snow", "Wood", "WoodPlanks" }, Default = WeaponmodelEnv.Material, Multi = false, Text = 'Material', Tooltip = 'Sets the material of your weapon', Callback = function(vl) WeaponmodelEnv.Material = vl end })
+
+Groups.LightingModifier:AddToggle('LightingModifierEnabled', { Text = 'Enabled', Default = WorldEnv.Enabled, Tooltip = 'Enable/Disable lighting modifier', Callback = function(vl) WorldEnv.Enabled = vl end })
+Groups.LightingModifier:AddDivider()
+Groups.LightingModifier:AddToggle('LightingModifierClock', { Text = 'Clock', Default = WorldEnv.Clock, Tooltip = 'Changes the clock time', Callback = function(vl) WorldEnv.Clock = vl end })
+Groups.LightingModifier:AddSlider('LightingModifierClockTime', { Text = 'Clock Time', Max = 24, Min = 0, Default = WorldEnv.ClockTime, Rounding = 1, Callback = function(vl) WorldEnv.ClockTime = vl end })
+Groups.LightingModifier:AddDivider()
+Groups.LightingModifier:AddToggle('LightingModifierBrightness', { Text = 'Brightness', Default = WorldEnv.Brightness, Tooltip = 'Changes the brightness', Callback = function(vl) WorldEnv.Brightness = vl end })
+Groups.LightingModifier:AddSlider('LightingModifierBrightnessValue', { Text = 'Brightness Value', Max = 10, Min = 0, Default = WorldEnv.BrightnessValue, Rounding = 1, Callback = function(vl) WorldEnv.BrightnessValue = vl end })
+Groups.LightingModifier:AddDivider()
+Groups.LightingModifier:AddToggle('LightingModifierAmbient', { Text = 'Ambient', Default = WorldEnv.Ambient, Tooltip = 'Changes the ambient color', Callback = function(vl) WorldEnv.Ambient = vl end }):AddColorPicker('LightingModifierAmbientColor', { Default = WorldEnv.AmbientColor, Title = 'Ambient Color', Transparency = nil, Callback = function(vl) WorldEnv.AmbientColor = vl end })
+
+Groups.PlayerUtilities:AddDropdown('PlayerUtilitiesPlayer', { SpecialType = 'Player', Text = 'Target Player', Tooltip = 'Changes the target player', Callback = function(vl) PlayerUtilitiesEnv.Target = vl end })
+Groups.PlayerUtilities:AddButton({ Text = 'Bring', Func = function() if PlayerUtilitiesEnv.Target ~= nil then Bring(PlayerUtilitiesEnv.Target, false) end end, Tooltip = 'Brings the targeted player to you\nEquip Desert Eagle for this to function', DoubleClick = false }):AddButton({ Text = 'Downed Bring', Func = function() if PlayerUtilitiesEnv.Target ~= nil then Bring(PlayerUtilitiesEnv.Target, true) end end, Tooltip = 'Brings the targeted player to you\nBut does not revive them\nEquip Desert Eagle for this to function', DoubleClick = false })
+Groups.PlayerUtilities:AddButton({ Text = 'Kill', Func = function() if PlayerUtilitiesEnv.Target ~= nil then Kill(PlayerUtilitiesEnv.Target) end end, Tooltip = 'Kills the targeted player\nEquip AK-47 for this to function', DoubleClick = false })
+Groups.PlayerUtilities:AddToggle('PlayerUtilitiesLoopKill', { Text = 'Loop Kill', Default = PlayerUtilitiesEnv.LoopKill, Tooltip = 'Kills the player in a loop\nEquip AK-47 for this to function', Callback = function(vl) PlayerUtilitiesEnv.LoopKill = vl if vl then task.spawn(function() while task.wait(0.5) do if PlayerUtilitiesEnv.LoopKill then Kill(PlayerUtilitiesEnv.Target) else break end end end) end end })
+Groups.PlayerUtilities:AddButton({ Text = 'Down', Func = function() if PlayerUtilitiesEnv.Target ~= nil then Down(PlayerUtilitiesEnv.Target) end end, Tooltip = 'Downs the targeted player\nEquip Desert Eagle for this to function', DoubleClick = false })
+Groups.PlayerUtilities:AddDivider()
+Groups.PlayerUtilities:AddButton({ Text = 'Kill All', Func = function() for _, v in next, Players:GetPlayers() do Kill(v.Name) end end, Tooltip = 'Kills all players INCLUDING yourself\nEquip AK-47 for this to function', DoubleClick = false }):AddButton({ Text = 'Kill Others', Func = function() for _, v in next, Players:GetPlayers() do if v ~= LocalPlayer then Kill(v) end end end, Tooltip = 'Kills other players\nEquip AK-47 for this to function', Doubleclick = false })
+Groups.PlayerUtilities:AddToggle('PlayerUtilitiesLoopKillAll', { Text = 'Loop Kill All', Default = PlayerUtilitiesEnv.LoopKillAll, Tooltip = 'Kills everyone INCLUDING you in a loop\nEquip AK-47 for this to function', Callback = function(vl) PlayerUtilitiesEnv.LoopKillAll = vl if vl then task.spawn(function() while task.wait(0.5) do if PlayerUtilitiesEnv.LoopKillAll then for _, v in next, Players:GetPlayers() do Kill(v.Name) end else break end end end) end end })
+Groups.PlayerUtilities:AddToggle('PlayerUtilitiesLoopKillOthers', { Text = 'Loop Kill Others', Default = PlayerUtilitiesEnv.LoopKillOthers, Tooltip = 'Kills others in a loop\nEquip AK-47 for this to function', Callback = function(vl) PlayerUtilitiesEnv.LoopKillOthers = vl if vl then task.spawn(function() while task.wait(0.5) do if PlayerUtilitiesEnv.LoopKillOthers then for _, v in next, Players:GetPlayers() do if v ~= LocalPlayer then Kill(v.Name) end end else break end end end) end end })
+
+Groups.LocalPlayer:AddToggle('LocalPlayerFastHeal', { Text = 'Fast Heal', Default = LocalPlayerEnv.FastHeal, Tooltip = 'Heals you when you hold a health tool (like medkit or bandages)', Callback = function(vl) LocalPlayerEnv.FastHeal = vl end })
+Groups.LocalPlayer:AddToggle('LocalPlayerAutoSelfRevive', { Text = 'Auto Self Revive', Default = LocalPlayerEnv.AutoSelfRevive, Tooltip = 'Automatically revives you when you are down', Callback = function(vl) LocalPlayerEnv.AutoSelfRevive = vl end })
+Groups.LocalPlayer:AddDropdown('LocalPlayerAutoSelfReviveMode', { Values = { 'RenderStepped', 'ChildAdded' }, Default = LocalPlayerEnv.AutoSelfReviveMode, Multi = false, Text = 'Auto Self Revive Mode', Tooltip = 'Changes the mode of auto self revive', Callback = function(vl) LocalPlayerEnv.AutoSelfReviveMode = vl end })
+
+Groups.HealAura:AddToggle('HealAuraEnabled', { Text = 'Enabled', Default = HealAuraEnv.Enabled, Tooltip = 'Heals the player around you', Callback = function(vl) HealAuraEnv.Enabled = vl end })
+Groups.HealAura:AddSlider('HealAuraRange', { Text = 'Range', Max = 50, Min = 0, Default = HealAuraEnv.Range, Rounding = 2, Callback = function(vl) HealAuraEnv.Range = vl end })
+Groups.HealAura:AddDropdown('HealAuraMode', { Values = { 'Blacklist', 'Whitelist' }, Default = HealAuraEnv.Mode, Multi = false, Text = 'Method', Tooltip = 'Changes the mode of the getting players', Callback = function(vl) HealAuraEnv.Mode = vl end })
+Groups.HealAura:AddDropdown('HealAuraPlayers', { SpecialType = 'Player', Text = 'Player List', Tooltip = 'Selects the player to heal or not', Multi = true, Callback = function(vl) HealAuraEnv.PlayerList = vl end })
+
+Groups.PenisGun:AddToggle('PenisGun', { Text = 'Enabled', Default = false, Tooltip = "Makes the gun you're holding look like your penis", Callback = function(vl) if vl then if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool") then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") MiscEnv.PenisGunTool = Tool Tool.Parent = Workspace end else if LocalPlayer.Character and MiscEnv.PenisGunTool ~= nil then MiscEnv.PenisGunTool.Parent = LocalPlayer.Character end end end })
+Groups.PenisGun:AddLabel('It is NOT recommended to hold a weapon during this is enabled', true)
+
+Groups.Menu:AddButton('Unload', function() Library:Unload() end)
+Groups.Menu:AddLabel('Menu Keybind'):AddKeyPicker('MK', { Default = 'Insert', NoUI = true, Text = 'Menu Keybind' })
 
 Library:OnUnload(function()
+	Meonkify:Exit()
 	Library.Unloaded = true
-    getgenv().TAimbot.Functions:Exit()
-	WatermarkConnection:Disconnect()
-	ESP.DestroyFunction()
-	VM = false
-	MM = false
-	LoopConnections:Disconnect()
-	WeaponMods = false
-	FC = false
 end)
 
-local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
-local Overlays = Tabs['UI Settings']:AddRightGroupbox('Overlays')
-
-Overlays:AddToggle('KeybindsOverlay', {
-	Text = 'Keybinds',
-	Default = false,
-	Tooltip = 'Shows a list with your keybinds',
-
-	Callback = function(Value)
-		Library.KeybindFrame.Visible = Value
-	end
-})
-
-Overlays:AddToggle('WatermarkOverlay', {
-	Text = 'Watermark',
-	Default = true,
-	Tooltip = 'Enable/Disable watermark',
-
-	Callback = function(Value)
-		Library:SetWatermarkVisibility(Value)
-	end
-})
-
-MenuGroup:AddButton('Unload', function() Library:Unload() end)
-MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'Insert', NoUI = true, Text = 'Menu keybind' })
-
-Library.ToggleKeybind = Options.MenuKeybind
+Library.ToggleKeybind = Options.MK
 
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library) 
-
 SaveManager:IgnoreThemeSettings()
-
-SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
-
+SaveManager:SetIgnoreIndexes({ 'MK', 'HealAuraPlayers', 'PlayerUtilitiesPlayer' })
 ThemeManager:SetFolder('Meonkify/Themes')
 SaveManager:SetFolder('Meonkify/Town')
-
-SaveManager:BuildConfigSection(Tabs['UI Settings'])
-
-ThemeManager:ApplyToTab(Tabs['UI Settings'])
-
+SaveManager:BuildConfigSection(Tabs.Settings)
+ThemeManager:ApplyToTab(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
+
+if hookmetamethod then
+	local Old; Old = hookmetamethod(game, "__namecall", newcclosure(function(Self, ...)
+		local Args = {...}
+		local Method = getnamecallmethod()
+		if typeof(Self) == "Instance" and Self.ClassName == "RemoteEvent" and Self.Name == "FireEvent" and Method == "FireServer" and not checkcaller() then
+			if SilentAimEnv.Enabled then
+				local Target = SilentAimGetClosestPlayer()
+				if Target ~= nil then
+					Args[1][1][1][1] = Target.Character[SilentAimEnv.TargetPart]
+					Args[1][1][1][2] = Target.Character[SilentAimEnv.TargetPart].Position
+					Args[1][1][1][3] = Vector3.new()
+					Args[1][1][1][4] = Target.Character[SilentAimEnv.TargetPart].Material
+					Args[4] = Vector3.new()
+				end
+			end
+		end
+		return Old(Self, table.unpack(Args))
+	end))
+end
+
+Library:Notify("Script loaded in ".. tick() - StartTick)
