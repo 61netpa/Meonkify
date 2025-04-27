@@ -75,6 +75,7 @@ getgenv().Meonkify = {
 		},
 		AntiAim = {
 			Enabled = false,
+			Mode = "RenderStepped",
 			Yaw = 0,
 			YawJitter = 0,
 			Pitch = 0,
