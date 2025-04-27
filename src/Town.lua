@@ -1,6 +1,7 @@
 -- Made by netpa with love. It was fun making this script. Also you are NOT allowed to completely copy and paste this code and claiming it as your own.
 -- Thanks to legitimate0x1 for helping me out on this! This would be so bad if he wouldn't help. :skull:
--- Also huge thanks to people who helped me test this script.
+-- If your executor has hookmetamethod, don't forget to execute an adonis bypass script.
+-- Also I quit playing Roblox meaning I'm updating this without testing them on an actual exploit and the game itself. If there are issues I probably won't fix it since as I mentioned, I don't play Roblox and exploit on it anymore.
 
 local StartTick = tick()
 
@@ -10,15 +11,17 @@ local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
-local MarketplaceService = cloneref(game:GetService("MarketplaceService"))
-local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
-local UserInputService = cloneref(game:GetService("UserInputService"))
-local TweenService = cloneref(game:GetService("TweenService"))
-local RunService = cloneref(game:GetService("RunService"))
-local Workspace = cloneref(game:GetService("Workspace"))
-local Lighting = cloneref(game:GetService("Lighting"))
-local Players = cloneref(game:GetService("Players"))
-local Stats = cloneref(game:GetService("Stats"))
+local CloneReference = cloneref or function(Ins) return Ins end
+
+local MarketplaceService = CloneReference(game:GetService("MarketplaceService"))
+local ReplicatedStorage = CloneReference(game:GetService("ReplicatedStorage"))
+local UserInputService = CloneReference(game:GetService("UserInputService"))
+local TweenService = CloneReference(game:GetService("TweenService"))
+local RunService = CloneReference(game:GetService("RunService"))
+local Workspace = CloneReference(game:GetService("Workspace"))
+local Lighting = CloneReference(game:GetService("Lighting"))
+local Players = CloneReference(game:GetService("Players"))
+local Stats = CloneReference(game:GetService("Stats"))
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
@@ -437,6 +440,31 @@ function Down(PlayerName)
 	end
 end
 
+function AntiAimDirection()
+	local Direction = nil
+	if LocalPlayer.Character and LocalPlayer.Character.FindFirstChild(LocalPlayer.Character, "HumanoidRootPart") ~= nil then
+		local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
+		local Offsets
+		Jitter = not Jitter
+		if AntiAimEnv.Offset == "World" then
+			if Jitter then
+				Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter)), math.sin(math.rad(AntiAimEnv.Pitch + AntiAimEnv.PitchJitter)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter)))
+			else
+				Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw)), math.sin(math.rad(AntiAimEnv.Pitch)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw)))
+			end
+		elseif AntiAimEnv.Offset == "Camera" then
+			if Jitter then
+				Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter) + math.atan2(Camera.CFrame.LookVector.Z, Camera.CFrame.LookVector.X)), math.sin(math.rad(AntiAimEnv.Pitch + AntiAimEnv.PitchJitter)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter) - Camera.CFrame.RightVector.X))
+			else
+				Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw) + math.atan2(Camera.CFrame.LookVector.Z, Camera.CFrame.LookVector.X)), math.sin(math.rad(AntiAimEnv.Pitch)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw) - Camera.CFrame.RightVector.X))
+			end
+		end
+		local x, y, z = HumanoidRootPart.Position.X + Offsets.X, HumanoidRootPart.Position.Y + Offsets.Y, HumanoidRootPart.Position.Z + Offsets.Z
+		Direction = CFrame.new(x, y, z)
+	end
+	return Direction
+end
+
 Utility.Settings = {
 	Line = {
 		Thickness = 1,
@@ -670,29 +698,27 @@ Connections.RenderSteppedConnection = RunService.RenderStepped:Connect(function(
 			end
 		end
 	end
-	if AntiAimEnv.Enabled then
-		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") ~= nil then
-			local CameraRemote = ReplicatedStorage:FindFirstChild("CameraEvent")
-			local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
-			local Offsets
-			Jitter = not Jitter
-			if AntiAimEnv.Offset == "World" then
-				if Jitter then
-					Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter)), math.sin(math.rad(AntiAimEnv.Pitch + AntiAimEnv.PitchJitter)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter)))
-				else
-					Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw)), math.sin(math.rad(AntiAimEnv.Pitch)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw)))
-				end
-			elseif AntiAimEnv.Offset == "Camera" then
-				if Jitter then
-					Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter) + math.atan2(Camera.CFrame.LookVector.Z, Camera.CFrame.LookVector.X)), math.sin(math.rad(AntiAimEnv.Pitch + AntiAimEnv.PitchJitter)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter) - Camera.CFrame.RightVector.X))
-				else
-					Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw) + math.atan2(Camera.CFrame.LookVector.Z, Camera.CFrame.LookVector.X)), math.sin(math.rad(AntiAimEnv.Pitch)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw) - Camera.CFrame.RightVector.X))
-				end
+	if AntiAimEnv.Enabled and AntiAimEnv.Mode == "RenderStepped" and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") ~= nil then
+		local CameraRemote = ReplicatedStorage:FindFirstChild("CameraEvent")
+		local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
+		local Offsets
+		Jitter = not Jitter
+		if AntiAimEnv.Offset == "World" then
+			if Jitter then
+				Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter)), math.sin(math.rad(AntiAimEnv.Pitch + AntiAimEnv.PitchJitter)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter)))
+			else
+				Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw)), math.sin(math.rad(AntiAimEnv.Pitch)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw)))
 			end
-			local x, y, z = HumanoidRootPart.Position.X + Offsets.X, HumanoidRootPart.Position.Y + Offsets.Y, HumanoidRootPart.Position.Z + Offsets.Z
-			if CameraRemote ~= nil then
-				CameraRemote:FireServer(CFrame.new(x, y, z), 0, 0.01, true, CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1))
+		elseif AntiAimEnv.Offset == "Camera" then
+			if Jitter then
+				Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter) + math.atan2(Camera.CFrame.LookVector.Z, Camera.CFrame.LookVector.X)), math.sin(math.rad(AntiAimEnv.Pitch + AntiAimEnv.PitchJitter)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw + AntiAimEnv.YawJitter) - Camera.CFrame.RightVector.X))
+			else
+				Offsets = Vector3.new(math.cos(math.rad(AntiAimEnv.Yaw) + math.atan2(Camera.CFrame.LookVector.Z, Camera.CFrame.LookVector.X)), math.sin(math.rad(AntiAimEnv.Pitch)) * 1.5, math.sin(math.rad(AntiAimEnv.Yaw) - Camera.CFrame.RightVector.X))
 			end
+		end
+		local x, y, z = HumanoidRootPart.Position.X + Offsets.X, HumanoidRootPart.Position.Y + Offsets.Y, HumanoidRootPart.Position.Z + Offsets.Z
+		if CameraRemote ~= nil then
+			CameraRemote:FireServer(CFrame.new(x, y, z), 0, 0.01, true, CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1), CFrame.new(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1))
 		end
 	end
 	if LocalPlayerEnv.FastHeal and LocalPlayer.Character then
@@ -819,6 +845,7 @@ function Meonkify:Exit()
 	Lighting.OutdoorAmbient = Olds.Ambient
 	AimbotEnv.FOVCircle:Remove()
 	SilentAimEnv.FOVCircle:Remove()
+	Library:Unload()
 	getgenv().Meonkify = nil
 end
 
@@ -890,6 +917,11 @@ else
 end
 
 Groups.AntiAim:AddToggle('AntiAimEnabled', { Text = 'Enabled', Default = AntiAimEnv.Enabled, Tooltip = 'Enable/Disable anti aim', Callback = function(vl) AntiAimEnv.Enabled = vl end })
+if hookmetamethod then
+	Groups.AntiAim:AddDropdown('AntiAimMode', { Values = { "RenderStepped", "hookmetamethod" }, Default = AntiAimEnv.Mode, Multi = false, Text = 'Anti Aim Mode', Tooltip = 'Changes the mode of how the anti aim works', Callback = function(vl) AntiAimEnv.Mode = vl end })
+else
+	Groups.AntiAim:AddLabel('Your current executor does not support the function "hookmetamethod". Because of that, anti aim mode is set to RenderStepped.', true)
+end
 Groups.AntiAim:AddSlider('AntiAimYaw', { Text = 'Yaw', Max = 180, Min = -180, Default = AntiAimEnv.Yaw, Rounding = 0, Callback = function(vl) AntiAimEnv.Yaw = vl end })
 Groups.AntiAim:AddSlider('AntiAimYawJitter', { Text = 'Yaw Jitter', Max = 180, Min = -180, Default = AntiAimEnv.YawJitter, Rounding = 0, Callback = function(vl) AntiAimEnv.YawJitter = vl end })
 Groups.AntiAim:AddSlider('AntiAimPitch', { Text = 'Pitch', Max = 90, Min = -90, Default = AntiAimEnv.Pitch, Rounding = 0, Callback = function(vl) AntiAimEnv.Pitch = vl end })
@@ -972,13 +1004,8 @@ Groups.HealAura:AddDropdown('HealAuraPlayers', { SpecialType = 'Player', Text = 
 Groups.PenisGun:AddToggle('PenisGun', { Text = 'Enabled', Default = false, Tooltip = "Makes the gun you're holding look like your penis", Callback = function(vl) if vl then if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool") then local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") MiscEnv.PenisGunTool = Tool Tool.Parent = Workspace end else if LocalPlayer.Character and MiscEnv.PenisGunTool ~= nil then MiscEnv.PenisGunTool.Parent = LocalPlayer.Character end end end })
 Groups.PenisGun:AddLabel('It is NOT recommended to hold a weapon during this is enabled', true)
 
-Groups.Menu:AddButton('Unload', function() Library:Unload() end)
+Groups.Menu:AddButton('Unload', function() Meonkify:Exit() end)
 Groups.Menu:AddLabel('Menu Keybind'):AddKeyPicker('MK', { Default = 'Insert', NoUI = true, Text = 'Menu Keybind' })
-
-Library:OnUnload(function()
-	Meonkify:Exit()
-	Library.Unloaded = true
-end)
 
 Library.ToggleKeybind = Options.MK
 
@@ -993,11 +1020,12 @@ ThemeManager:ApplyToTab(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
 
 if hookmetamethod then
-	local Old; Old = hookmetamethod(game, "__namecall", newcclosure(function(Self, ...)
+	local Old = nil; 
+	Old = hookmetamethod(game, "__namecall", newcclosure(function(Self, ...)
 		local Args = {...}
 		local Method = getnamecallmethod()
-		if typeof(Self) == "Instance" and Self.ClassName == "RemoteEvent" and Self.Name == "FireEvent" and Method == "FireServer" and not checkcaller() then
-			if SilentAimEnv.Enabled then
+		if typeof(Self) == "Instance" and Self.ClassName == "RemoteEvent" and Method == "FireServer" and not checkcaller() then
+			if Self.Name == "FireEvent" and SilentAimEnv.Enabled then
 				local Target = SilentAimGetClosestPlayer()
 				if Target ~= nil then
 					Args[1][1][1][1] = Target.Character[SilentAimEnv.TargetPart]
@@ -1005,6 +1033,12 @@ if hookmetamethod then
 					Args[1][1][1][3] = Vector3.new()
 					Args[1][1][1][4] = Target.Character[SilentAimEnv.TargetPart].Material
 					Args[4] = Vector3.new()
+				end
+			end
+			if Self.Name == "CameraEvent" and AntiAimEnv.Enabled and AntiAimEnv.Mode == "hookmetamethod" then
+				local Offsets = AntiAimDirection()
+				if Offsets ~= nil then
+					Args[1] = Offsets
 				end
 			end
 		end
