@@ -112,17 +112,23 @@ getgenv().Meonkify = {
 			Enabled = false,
 			Box = false,
 			BoxColor = Color3.fromRGB(255, 255, 255),
+			BoxOutlineColor = Color3.fromRGB(0, 0, 0),
 			HealthBar = false,
 			HealthBarColor = Color3.fromRGB(0, 255, 0),
+			HealthBarOutlineColor = Color3.fromRGB(0, 0, 0),
 			Name = false,
 			NameColor = Color3.fromRGB(255, 255, 255),
+			NameOutlineColor = Color3.fromRGB(0, 0, 0),
 			NameMode = "Username",
 			Tool = false,
 			ToolColor = Color3.fromRGB(255, 255, 255),
+			ToolOutlineColor = Color3.fromRGB(0, 0, 0),
 			Distance =  false,
 			DistanceColor = Color3.fromRGB(255, 255, 255),
+			DistanceOutlineColor = Color3.fromRGB(0, 0, 0),
 			Font = "Plex",
-			MaxDistance = 100000
+			MaxDistance = 100000,
+			Outlines = { Box = true, HealthBar = true, Name = true, Tool = true, Distance = true }
 		},
 		ViewModel = {
 			Enabled = false,
@@ -480,7 +486,6 @@ Utility.Settings = {
 	Text = {
 		Size = 13,
 		Center = true,
-		Outline = true,
 		Font = Drawing.Fonts.Plex,
 		Color = Color3.fromRGB(255, 255, 255)
 	},
@@ -617,7 +622,7 @@ Connections.RenderSteppedConnection = RunService.RenderStepped:Connect(function(
 			if OnScreen then
 				local Size = (Camera:WorldToViewportPoint(RootPart.Position - Vector3.new(0, 3, 0)).Y - Camera:WorldToViewportPoint(RootPart.Position + Vector3.new(0, 2.6, 0)).Y) / 2
 				local BoxSize = Vector2.new(math.floor(Size * 1.5), math.floor(Size * 1.9))
-				local BoxPos = Vector2.new(math.floor(Pos.X - Size * 1.5 / 2), math.floor(Pos.Y - Size * 1.6 / 2))
+				local BoxPos = Vector2.new(math.floor(Pos.X - Size * 1.5 / 2), math.floor(Pos.Y - Size * 1.6 / 2))				
 				local Name = PlayerDrawing.Name
 				local Distance = PlayerDrawing.Distance
 				local Tool = PlayerDrawing.Tool
@@ -633,10 +638,13 @@ Connections.RenderSteppedConnection = RunService.RenderStepped:Connect(function(
 					Box.Visible = true
 					Box.Color = ESPEnv.BoxColor
 					Box.ZIndex = 1
-					BoxOutline.Size = BoxSize
-					BoxOutline.Position = BoxPos
-					BoxOutline.Visible = true
-					BoxOutline.ZIndex = 0
+					if ESPEnv.Outlines.Box then
+						BoxOutline.Size = BoxSize
+						BoxOutline.Position = BoxPos
+						BoxOutline.Visible = true
+						BoxOutline.ZIndex = 0
+						BoxOutline.Color = ESPEnv.BoxOutlineColor
+					end
 				end
 				if ESPEnv.HealthBar then
 					Health.From = Vector2.new((BoxPos.X - 5), BoxPos.Y + BoxSize.Y)
@@ -644,10 +652,13 @@ Connections.RenderSteppedConnection = RunService.RenderStepped:Connect(function(
 					Health.Color = ESPEnv.HealthBarColor
 					Health.Visible = true
 					Health.ZIndex = 1
-					HealthOutline.From = Vector2.new(Health.From.X, BoxPos.Y + BoxSize.Y + 1)
-					HealthOutline.To = Vector2.new(Health.From.X, (Health.From.Y - 1 * BoxSize.Y) -1)
-					HealthOutline.Visible = true
-					HealthOutline.ZIndex = 0
+					if ESPEnv.Outlines.HealthBar then
+						HealthOutline.From = Vector2.new(Health.From.X, BoxPos.Y + BoxSize.Y + 1)
+						HealthOutline.To = Vector2.new(Health.From.X, (Health.From.Y - 1 * BoxSize.Y) -1)
+						HealthOutline.Visible = true
+						HealthOutline.ZIndex = 0
+						HealthOutline.Color = ESPEnv.HealthBarOutlineColor
+					end
 				end
 				if ESPEnv.Name then
 					local PlayerName = ""
@@ -661,6 +672,12 @@ Connections.RenderSteppedConnection = RunService.RenderStepped:Connect(function(
 					Name.Color = ESPEnv.NameColor
 					Name.Font = Drawing.Fonts[ESPEnv.Font]
 					Name.Visible = true
+					if ESPEnv.Outlines.Name then
+						Name.Outline = true
+						Name.OutlineColor = ESPEnv.NameOutlineColor
+					else
+						Name.Outline = false
+					end
 				end
 				if ESPEnv.Tool then
 					local EquippedTool = Player.Character:FindFirstChildOfClass("Tool")
@@ -671,6 +688,12 @@ Connections.RenderSteppedConnection = RunService.RenderStepped:Connect(function(
 					Tool.Font = Drawing.Fonts[ESPEnv.Font]
 					Tool.Visible = true
 					BottomOffset += 15
+					if ESPEnv.Outlines.Tool then
+						Tool.Outline = true
+						Tool.OutlineColor = ESPEnv.ToolOutlineColor
+					else
+						Tool.Outline = false
+					end
 				end
 				if ESPEnv.Distance then
 					Distance.Text = math.floor(DistanceFromCharacter).."m"
@@ -679,6 +702,12 @@ Connections.RenderSteppedConnection = RunService.RenderStepped:Connect(function(
 					Distance.Font = Drawing.Fonts[ESPEnv.Font]
 					Distance.Visible = true
 					BottomOffset += 15
+					if ESPEnv.Outlines.Distance then
+						Distance.Outline = true
+						Distance.OutlineColor = ESPEnv.DistanceOutlineColor
+					else
+						Distance.Outline = false
+					end
 				end
 			end
 		end
@@ -956,12 +985,13 @@ Groups.GunMods:AddLabel('Install Kill')
 Groups.GunMods:AddToggle('GunModsInstallKill', { Text = 'Enabled', Default = false, Tooltip = 'Installs your kills 🤖🤖 (Fatality.cb moment)', Callback = function(vl) if vl then Library:Notify("Installing your kills 🤖🤖 (this shit aint doing anything bru 💔💔)") end end })
 
 Groups.ESP:AddToggle('ESPEnabled', { Text = 'Enabled', Default = ESPEnv.Enabled, Tooltip = 'Enable/Disable ESP', Callback = function(vl) ESPEnv.Enabled = vl end })
-Groups.ESP:AddToggle('ESPBox', { Text = 'Box', Default = ESPEnv.Box, Tooltip = 'Draws boxes on players', Callback = function(vl) ESPEnv.Box = vl end }):AddColorPicker('ESPBoxColor', { Default = ESPEnv.BoxColor, Title = 'ESP Box Color', Transparency = nil, Callback = function(vl) ESPEnv.BoxColor = vl end })
-Groups.ESP:AddToggle('ESPName', { Text = 'Name', Default = ESPEnv.Name, Tooltip = 'Draws names on players', Callback = function(vl) ESPEnv.Name = vl end }):AddColorPicker('ESPNameColor', { Default = ESPEnv.NameColor, Title = 'ESP Name Color', Transparency = nil, Callback = function(vl) ESPEnv.NameColor = vl end })
-Groups.ESP:AddToggle('ESPHealthBar', { Text = 'Health Bar', Default = ESPEnv.HealthBar, Tooltip = 'Draws health bars on players', Callback = function(vl) ESPEnv.HealthBar = vl end }):AddColorPicker('ESPHealthBarColor', { Default = ESPEnv.HealthBarColor, Title = 'ESP Health Bar Color', Transparency = nil, Callback = function(vl) ESPEnv.HealthBarColor = vl end })
-Groups.ESP:AddToggle('ESPTool', { Text = 'Tool', Default = ESPEnv.Tool, Tooltip = 'Draws the equipped tool on players', Callback = function(vl) ESPEnv.Tool = vl end }):AddColorPicker('ESPToolColor', { Default = ESPEnv.ToolColor, Title = 'ESP Tool Color', Transparency = nil, Callback = function(vl) ESPEnv.ToolColor = vl end })
-Groups.ESP:AddToggle('ESPDistance', { Text = 'Distance', Default = ESPEnv.Distance, Tooltip = 'Draws the distance between your character and the player', Callback = function(vl) ESPEnv.Distance  = vl end }):AddColorPicker('ESPDistanceColor', { Default = ESPEnv.DistanceColor, Title = 'ESP Distance Color', Transparency = nil, Callback = function(vl) ESPEnv.DistanceColor = vl end })
+Groups.ESP:AddToggle('ESPBox', { Text = 'Box', Default = ESPEnv.Box, Tooltip = 'Draws boxes on players', Callback = function(vl) ESPEnv.Box = vl end }):AddColorPicker('ESPBoxColor', { Default = ESPEnv.BoxColor, Title = 'ESP Box Color', Transparency = nil, Callback = function(vl) ESPEnv.BoxColor = vl end }):AddColorPicker('ESPBoxOutlineColor', { Default = ESPEnv.BoxOutlineColor, Title = 'ESP Box Outline Color', Transparency = nil, Callback = function(vl) ESPEnv.BoxOutlineColor = vl end })
+Groups.ESP:AddToggle('ESPName', { Text = 'Name', Default = ESPEnv.Name, Tooltip = 'Draws names on players', Callback = function(vl) ESPEnv.Name = vl end }):AddColorPicker('ESPNameColor', { Default = ESPEnv.NameColor, Title = 'ESP Name Color', Transparency = nil, Callback = function(vl) ESPEnv.NameColor = vl end }):AddColorPicker('ESPNameOutlineColor', { Default = ESPEnv.NameOutlineColor, Title = 'ESP Name Outline Color', Transparency = nil, Callback = function(vl) ESPEnv.NameOutlineColor = vl end })
+Groups.ESP:AddToggle('ESPHealthBar', { Text = 'Health Bar', Default = ESPEnv.HealthBar, Tooltip = 'Draws health bars on players', Callback = function(vl) ESPEnv.HealthBar = vl end }):AddColorPicker('ESPHealthBarColor', { Default = ESPEnv.HealthBarColor, Title = 'ESP Health Bar Color', Transparency = nil, Callback = function(vl) ESPEnv.HealthBarColor = vl end }):AddColorPicker('ESPHealthBarOutlineColor', { Default = ESPEnv.HealthBarOutlineColor, Title = 'ESP Health Bar Outline Color', Transparency = nil, Callback = function(vl) ESPEnv.HealthBarOutlineColor = vl end })
+Groups.ESP:AddToggle('ESPTool', { Text = 'Tool', Default = ESPEnv.Tool, Tooltip = 'Draws the equipped tool on players', Callback = function(vl) ESPEnv.Tool = vl end }):AddColorPicker('ESPToolColor', { Default = ESPEnv.ToolColor, Title = 'ESP Tool Color', Transparency = nil, Callback = function(vl) ESPEnv.ToolColor = vl end }):AddColorPicker('ESPToolOutlineColor', { Default = ESPEnv.ToolOutlineColor, Title = 'ESP Tool Outline Color', Transparency = nil, Callback = function(vl) ESPEnv.ToolOutlineColor = vl end })
+Groups.ESP:AddToggle('ESPDistance', { Text = 'Distance', Default = ESPEnv.Distance, Tooltip = 'Draws the distance between your character and the player', Callback = function(vl) ESPEnv.Distance  = vl end }):AddColorPicker('ESPDistanceColor', { Default = ESPEnv.DistanceColor, Title = 'ESP Distance Color', Transparency = nil, Callback = function(vl) ESPEnv.DistanceColor = vl end }):AddColorPicker('ESPDistanceOutlineColor', { Default = ESPEnv.DistanceOutlineColor, Title = 'ESP Distance Outline Color', Transparency = nil, Callback = function(vl) ESPEnv.DistanceOutlineColor = vl end })
 Groups.ESP:AddDropdown('ESPNameMode', { Values = { "Username", "Display Name" }, Default = ESPEnv.NameMode, Multi = false, Text = 'Name Mode', Tooltip = 'Changes the name mode', Callback = function(vl) ESPEnv.NameMode = vl end })
+Groups.ESP:AddDropdown('ESPOutlines', { Values = {"Box", "HealthBar", "Name", "Tool", "Distance"}, Default = {"Box", "HealthBar", "Name", "Tool", "Distance"}, Multi = true, Text = 'Outlines', Tooltip = 'Changes the visibility of outlines', Callback = function(vl) ESPEnv.Outlines = vl end })
 Groups.ESP:AddDropdown('ESPFont', { Values = { "Plex", "Monospace", "System", "UI" }, Default = ESPEnv.Font, Multi = false, Text = 'Font', Tooltip = 'Changes the text font', Callback = function(vl) ESPEnv.Font = vl end })
 Groups.ESP:AddSlider('ESPDistance', { Text = 'Max Distance', Max = 100000, Min = 0, Default = ESPEnv.MaxDistance, Rounding = 0, Callback = function(vl) ESPEnv.MaxDistance = vl end })
 
